@@ -1,0 +1,3001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RICA Contract Management System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"> -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLMDJ8g/zYTYlQ+5F+bY3xG1t6B9T1+XQ94NqC5p3g4h45hT68r9pL7+67q5l/Rz0w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        :root {
+            --rica-green: #4CAF50;
+            --rica-green-dark: #388E3C;
+            --rica-green-light: #e8f5e9;
+            --text-dark: #333;
+            --text-grey: #666;
+            --bg-light: #f8f9fa;
+            --sidebar-width: 260px;
+            --card-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            --error-red: #e53935;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- LOGIN PAGE STYLES --- */
+        #login-container {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2000;
+            background: white;
+            transition: transform 0.5s ease-in-out;
+        }
+
+        .login-hidden {
+            transform: translateY(-100%);
+        }
+
+        .login-left {
+            width: 50%;
+            background-color: var(--rica-green);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            padding: 40px;
+            text-align: left;
+        }
+
+        .login-left h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 20px;
+        }
+
+        .login-right {
+            width: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: white;
+        }
+
+        .login-form-box {
+            width: 100%;
+            max-width: 400px;
+            padding: 40px;
+        }
+
+        .login-form-box h2 {
+            font-size: 2rem;
+            color: var(--text-dark);
+            margin-bottom: 30px;
+        }
+
+        /* --- DASHBOARD STYLES --- */
+        #dashboard-container {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            pointer-events: none; /* Prevent clicking when hidden */
+        }
+
+        .dashboard-visible {
+            opacity: 1 !important;
+            pointer-events: auto !important;
+        }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            /* background-color: var(--rica-green); */
+            color: white;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .sidebar-header {
+            padding: 25px;
+            font-size: 1.4rem;
+            font-weight: 700;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-links {
+            list-style: none;
+            padding-top: 20px;
+            flex: 1;
+        }
+
+        .nav-links li a {
+            display: flex;
+            align-items: center;
+            padding: 15px 25px;
+            /* color: rgba(255,255,255,0.9); */
+            color: var(--text-grey);
+            text-decoration: none;
+            font-weight: 350;
+            font-size: 1rem;
+            transition: all 0.2s;
+            border-left: 4px solid transparent;
+        }
+
+        .nav-links li a:hover, .nav-links li a.active {
+            /* background-color: rgba(255,255,255,0.15);
+            border-left-color: white;
+            color: white; */
+            background-color: rgba(39, 248, 137, 0.15);
+            border-left-color: var(--rica-green);
+            color: var(--rica-green);
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .top-bar {
+            background: white;
+            height: 70px;
+            display: flex;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            box-shadow: var(--card-shadow);
+            z-index: 100;
+        }
+
+        .burger-icon {
+            font-size: 1.8rem;
+            color: var(--text-dark);
+            cursor: pointer;
+            display: none;
+            margin-right: 15px;
+        }
+
+        .page-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        /* User Profile with Dropdown (#1 from image) */
+        .user-profile-container {
+            position: relative;
+            cursor: pointer;
+        }
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: background 0.2s;
+        }
+        .user-profile:hover { background-color: #f0f0f0; }
+        .user-avatar {
+            width: 35px;
+            height: 35px;
+            background-color: var(--rica-green);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .user-info { text-align: right; display: flex; flex-direction: column; }
+        .user-name { font-weight: 600; font-size: 0.9rem; color: var(--text-dark); }
+        .user-role { font-size: 0.75rem; color: var(--text-grey); }
+        .dropdown-arrow { font-size: 0.8rem; color: var(--text-grey); margin-left: 5px; }
+
+        /* Dropdown Menu */
+        .profile-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            width: 180px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 8px;
+            padding: 10px 0;
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            border: 1px solid #eee;
+        }
+        .profile-dropdown.active { display: flex; }
+        .dropdown-item {
+            padding: 10px 20px;
+            text-decoration: none;
+            color: var(--text-dark);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: background 0.2s;
+        }
+        .dropdown-item:hover { background-color: #f5f5f5; color: var(--rica-green); }
+        .dropdown-divider { height: 1px; background-color: #eee; margin: 5px 0; }
+        
+        /*space between content on bottom and content on top */
+        .scroll-area {  overflow-y: auto; }
+        /* .scroll-area {  overflow-y: auto; padding: 30px;} */
+        /*End of Profile*/
+        
+        /* --- ACTION BAR (#1 Search, #2 Filter, #3 Add Button) --- */
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 8px 15px;
+            width: 300px;
+        }
+        .search-box input { border: none; outline: none; margin-left: 10px; width: 100%; font-size: 0.9rem; }
+        .search-box i { color: var(--text-grey); }
+
+        .action-buttons { display: flex; gap: 10px;margin-top: 50px; }
+        
+        .btn-outline {
+            background: white;
+            border: 1px solid #ddd;
+            color: var(--text-dark);
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+        .btn-outline:hover { background-color: #f5f5f5; border-color: #ccc; }
+        /*End of Search*/
+        /* .logout-btn {
+            color: #d32f2f;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 5px 10px;
+            border: 1px solid #d32f2f;
+            border-radius: 4px;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+        .logout-btn:hover { background: #d32f2f; color: white; }
+
+        .scroll-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px;
+        } */
+
+        /* --- WIDGETS --- */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--rica-green);
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: var(--card-shadow);
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+        }
+
+        .stat-info h4 { color: white; font-size: 0.9rem; font-weight: 500; margin-bottom: 10px; }
+        .stat-info div { color: white; font-size: 2rem; font-weight: 700; }
+        
+        .stat-icon {
+            background-color: var(--rica-green-light);
+            color: var(--rica-green);
+            padding: 15px;
+            border-radius: 50%;
+            font-size: 1.5rem;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: var(--card-shadow);
+            padding: 25px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            margin-top: 50px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th {
+            text-align: left;
+            padding: 15px;
+            background-color: #f8f9fa;
+            color: var(--text-grey);
+            font-weight: 600;
+            font-size: 0.9rem;
+            border-bottom: 2px solid #eee;
+        }
+
+        .data-table td {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            color: var(--text-dark);
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .status-active { background: #e8f5e9; color: #2e7d32; }
+        .status-pending { background: #fff3e0; color: #ef6c00; }
+        .status-failed { background: #ffebee; color: #c62828; }
+        .status-archived { background: #eceff1; color: #546e7a; }
+
+        /* --- FOOTER / PAGINATION (#4) --- */
+        .table-footer {
+            padding: 65px 15px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+        }
+        .pagination-info { font-size: 0.9rem; color: var(--text-grey); }
+        .pagination-controls { display: flex; gap: 5px; }
+        .page-btn {
+            border: 1px solid #ddd;
+            background: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--text-grey);
+            transition: 0.2s;
+        }
+        .page-btn:hover { background: #f0f0f0; }
+        .page-btn.active { background: var(--rica-green); color: white; border-color: var(--rica-green); }
+
+
+        /* --- FORMS --- */
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; color: var(--text-dark); font-weight: 500; }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        .form-control:focus { border-color: var(--rica-green); }
+
+        .input-wrapper { position: relative; }
+        .input-wrapper input {
+            width: 100%;
+            padding: 12px 15px 12px 45px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 1rem;
+            outline: none;
+        }
+        .input-wrapper i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--rica-green);
+            font-size: 1.2rem;
+            pointer-events: none;
+        }
+
+        .btn-primary {
+            background: var(--rica-green);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: 600;
+            width: 100%; /* Full width for login */
+        }
+        .btn-primary:hover { background: var(--rica-green-dark); }
+        
+        .btn-small {
+             width: auto;
+             padding: 8px 15px;
+             font-size: 0.9rem;
+        }
+
+        .login-links {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        .login-links a { color: #007bff; text-decoration: none; margin: 0 10px; }
+
+        @media (max-width: 768px) {
+            .login-left { display: none; }
+            .login-right { width: 100%; }
+            .sidebar { position: fixed; left: -260px; height: 100%; box-shadow: 5px 0 15px rgba(0,0,0,0.1); }
+            .sidebar.active { left: 0; }
+            .burger-icon { display: block; }
+        }
+
+        .hidden { display: none; }
+        .error-msg { color: red; text-align: center; margin-top: 10px; display: none; }
+
+        /* --- HEADER LAYOUT FIX --- */
+        .section-header {
+            display: flex;
+            justify-content: space-between; /* Push Title Left, Actions Right */
+            align-items: center;            /* Vertically align them */
+            margin-bottom: 20px;
+            flex-wrap: wrap;                /* Allow wrapping on small screens */
+            gap: 15px;
+        }
+
+        .section-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: var(--text-dark);
+            white-space: nowrap; /* Prevent title wrapping unnecessarily */
+        }
+        .section-header #span {
+            margin: 0;
+            font-size: 1.0rem;
+            color: var(--rica-green);
+            white-space: nowrap; /* Prevent title wrapping unnecessarily */
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px; /* Space between Search and Button */
+        }
+
+        /* Search Box Styling */
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 6px 12px;
+            width: 250px; /* Fixed width for search */
+            transition: border-color 0.2s;
+        }
+
+        .search-box:focus-within {
+            border-color: var(--rica-green);
+        }
+
+        .search-box input {
+            border: none;
+            outline: none;
+            margin-left: 8px;
+            width: 100%;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+        }
+
+        .search-box i {
+            color: var(--text-grey);
+            font-size: 1.1rem;
+        }
+
+        /* Button Adjustment */
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 600px) {
+            .section-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .header-actions {
+                flex-direction: column;
+                width: 100%;
+            }
+            .search-box {
+                width: 100%;
+            }
+            .btn-small {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+            /* Style for the add contract form  */
+            /* The Container to hold the inputs side-by-side */
+            .form-row {
+                display: flex;
+                gap: 20px; /* Space between inputs */
+                flex-wrap: wrap; /* Allows stacking on small screens */
+                margin-left: 30px;
+            }
+
+            /* The Wrapper for each individual input */
+            .input-group {
+                position: relative;
+                width: 250px; /* Or use flex: 1 for fluid width */
+                margin-bottom: 20px;
+            }
+
+            /* The Input Field Styling */
+            .input-field {
+                width: 100%;
+                padding: 12px 15px;
+                border: 1px solid #999; /* Grey border */
+                border-radius: 4px; /* Slight rounding */
+                outline: none;
+                font-size: 16px;
+                box-sizing: border-box; /* Ensures padding doesn't break width */
+                background: transparent;
+            }
+
+            /* The Label Styling */
+            .input-label {
+                position: absolute;
+                top: -9px; /* Moves label up to cut the border */
+                left: 12px;
+                background-color: white; /* Matches background to hide the line behind it */
+                padding: 0 5px;
+                font-size: 13px;
+                color: #333;
+                pointer-events: none; /* Allows clicking 'through' the label into the box */
+            }
+
+            /* Focus State (When user clicks) */
+            .input-field:focus {
+                border-color: var(--rica-green); /* Darker border on click */
+                border-width: 1px;
+            }
+            
+            .input-field:focus + .input-label {
+                color: var(--rica-green);
+                font-weight: 600;
+            }
+            .Header-modify{
+                margin-bottom:25px;
+                margin-left: 30px; 
+                color:#4e4d4d;
+                font-size: large;
+            }
+            .form-row .ph-calendar {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--rica-green);
+            font-size: 1.2rem;
+            pointer-events: none;
+            }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        .activity-table-header {
+            display: grid;
+            grid-template-columns: 3fr 2fr 2fr 2fr auto;
+            gap: 15px;
+            padding: 0 15px 10px 15px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--text-grey);
+            text-transform: uppercase;
+        }
+
+        .activity-row { 
+            display: grid; 
+            grid-template-columns: 3fr 2fr 2fr 2fr auto; 
+            gap: 15px; 
+            margin-bottom: 10px; 
+            align-items: center; 
+            background: #f9f9f9;
+            padding: 10px 15px;
+            border: 1px solid #eee;
+            border-radius: 6px;
+        }
+        
+        .activity-row .input-wrapper input {
+            padding-left: 10px; 
+            border: 1px solid #e0e0e0;
+            background: white;
+        }
+        .activity-row .input-wrapper i { display: none; }
+
+        .btn-add-row { 
+            background: white; 
+            color: var(--rica-green); 
+            border: 1px dashed var(--rica-green); 
+            width: 100%; 
+            padding: 12px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: 600; 
+            margin-top: 15px; 
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-add-row:hover { background: #f1f8e9; }
+
+        /* Buttons */
+        .wizard-actions { 
+            margin-top: 40px; 
+            gap: 15px; 
+            border-top: 1px solid #eee; 
+            padding-top: 30px; 
+            text-align: center;
+        }
+        
+        .btn-primary { 
+            background: var(--rica-green); 
+            color: white; 
+            border: none;
+            padding: 12px 30px; 
+            border-radius: 4px; 
+            font-size: 1rem; 
+            font-weight: 600; 
+            cursor: pointer; 
+            display: inline-flex; 
+            width: 200px;
+            align-items: center; 
+            gap: 8px;
+        }
+        .btn-primary:hover { background: var(--rica-green-dark); }
+        
+        .btn-secondary { 
+            background: white; 
+            color: #666; 
+            border: 1px solid #ccc; 
+            padding: 12px 30px; 
+            border-radius: 4px; 
+            font-size: 1rem; 
+            font-weight: 600; 
+            cursor: pointer; 
+        }
+        .btn-secondary:hover { background: #f5f5f5; color: #333; }
+
+
+
+
+
+
+
+        /*css for Error message display when user type letter in number and etc*/
+        .input-group.error input { border-color: var(--error-red); background-color: #fffafa; }
+        .error-text { color: var(--error-red); font-size: 0.8rem; margin-top: 4px; display: none; }
+        .input-group.error + .error-text { display: block; }
+        /* Error (Red) */
+        .input-group.error .input-field {
+            border-color: #e74c3c;
+            border-width: 2px;
+        }
+        .input-group.error .input-label {
+            color: #e74c3c;
+            font-weight: 700;
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+        /* Dropdown/Submenu styles for Settings */
+        .sidebar-dropdown { 
+            position: relative; 
+            cursor: pointer;
+        }
+        .sidebar-dropdown-toggle {
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .sidebar-dropdown-content {
+            list-style: none;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out;
+            background-color: white;
+        }
+        .sidebar-dropdown.open .sidebar-dropdown-content {
+            max-height: 500px; /* Large enough value to cover all items */
+        }
+        .sidebar-dropdown-content a {
+            padding: 10px 25px 10px 50px; /* Indent the submenu items */
+            margin-left: 20px;
+            display: flex; align-items: center; gap: 10px;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            transition: 0.2s;
+            font-size: 0.95rem;
+        }
+        .sidebar-dropdown-content a:hover, .sidebar-dropdown-content a.active {
+            background-color: rgba(0, 0, 0, 0.2);
+            color: white;
+        }
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        /* Wizard Specific Styles */
+        .wizard-container { background: white; padding: 40px; border-radius: 10px; box-shadow: var(--card-shadow); max-width: 900px; margin: 0 auto; width: 100%; }
+        .wizard-steps { display: flex; margin-bottom: 30px; border-bottom: 2px solid #eee; }
+        
+        /* Make step tabs clickable and hoverable */
+        .step-tab { 
+            padding: 15px 30px; 
+            font-weight: 600; 
+            color: var(--text-grey); 
+            cursor: pointer; /* Changed to pointer */
+            position: relative; 
+            transition: color 0.2s;
+        }
+        .step-tab:hover:not(.active) {
+            color: var(--text-dark); /* Subtle hover effect */
+        }
+        .step-tab.active { color: var(--rica-green); }
+        .step-tab.active::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 2px; background: var(--rica-green); }
+        .wizard-step { display: none; } 
+        .wizard-step.active { display: block; animation: fadeIn 0.3s; }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    /* Payment CSS Formatting  Extracted from Bootstrap Reboot */
+    .container { width: 100%; padding: 0 15px; margin: 0 auto; max-width: 1140px; }
+    .row { display: flex; flex-wrap: wrap; margin: 0 -15px; }
+    .col-md-6 { flex: 0 0 auto; width: 50%; padding: 0 15px; }
+    .mt-4 { margin-top: 1.5rem !important; }
+    #payment-search-header{margin-bottom: 20px;}
+    #contract-found{margin-bottom: 10px;}
+    .d-none, .hidden { display: none !important; }
+
+    /* 3. CARDS (Your results and forms) */
+    .card { position: relative; display: flex; flex-direction: column; background-color: #fff; border: 1px solid var(--bs-border-color); border-radius: 0.375rem; padding: 1.25rem; box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); margin-bottom: 1rem; }
+    .card-title { margin-bottom: 0.5rem; font-size: 1.25rem; font-weight: 500; }
+
+    /* 4. FORMS (Inputs & Buttons) */
+    .form-select { display: block; width: 100%; padding: 0.375rem 0.75rem; font-size: 1rem; color: #212529; background-color: #fff; border: 1px solid #ced4da; border-radius: 0.375rem; transition: border-color .15s ease-in-out; }
+    .btn-success { color: #fff; background-color: #4CAF50; border-color: #198754; }
+    .btn-danger { color: #fff; background-color: #dc3545; border-color: #dc3545; }
+
+    /* 5. TABLES (Payment history) */
+    .table { width: 100%; margin-bottom: 1rem; vertical-align: top; border-color: var(--bs-border-color); border-collapse: collapse; }
+    .table th { text-align: inherit; padding: 0.5rem; border-bottom: 2px solid var(--bs-border-color); background-color: #f8f9fa; }
+    .table td { padding: 0.5rem; border-bottom: 1px solid var(--bs-border-color); }
+    .table-striped tbody tr:nth-of-type(odd) { background-color: rgba(0,0,0,.05); }
+
+    /* 6. MESSAGES (Text Colors) */
+    .text-red-500, .text-danger { color: var(--bs-danger) !important; }
+    .text-green-500, .text-success { color: var(--bs-success) !important; }
+    .text-blue-500, .text-primary { color: var(--bs-blue) !important; }
+    /* End of for Payment CSS Formatting  Extracted from Bootstrap Reboot */
+    
+    /* Beginning of Formatting for Evaluation */
+    .container { max-width: 1000px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .performance-header { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding: 20px; background: #f8fafc;}
+    .progress-container { margin: 25px 0; }
+    .progress-bar-bg { background: #e2e8f0; border-radius: 20px; height: 25px; width: 100%; overflow: hidden; position: relative; }
+    .progress-bar-fill { background: #4CAF50; height: 100%; width: 0%; transition: width 0.8s ease-in-out; }
+    .progress-text { position: absolute; width: 100%; text-align: center; line-height: 25px; font-weight: bold; color: #1e293b; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { padding: 15px; text-align: left; border-bottom: 1px solid #edf2f7; }
+    th { background: #f1f5f9; color: #475569; font-size: 0.85rem; text-transform: uppercase; }
+    
+    /* Status Styles */
+    .status-Completed { color: #4CAF50; font-weight: bold; background: #ecfdf5; padding: 4px 8px; border-radius: 4px; }
+    .status-In-Progress { color: #d97706; background: #fffbeb; padding: 4px 8px; border-radius: 4px; }
+    .status-Pending { color: #64748b; background: #f1f5f9; padding: 4px 8px; border-radius: 4px; }  
+    .hidden { display: none; }
+    /* End of Formatting for Evaluation */
+
+    /* Beginning of Formatting for issues */
+    .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .issue-input, .issue-textarea, .issue-select { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+     button { padding: 10px 20px; cursor: pointer; border: none; border-radius: 4px; }
+    .btn-report { background: #28a745; color: white; margin-top: 10px; }
+    .hidden { display: none; }
+    .issue-card { background: #fafafa; border-left: 5px solid #007bff; padding: 10px; margin: 10px 0; border-radius: 4px; }
+    .priority-High { color: red; font-weight: bold; }
+    .priority-Medium { color: orange; }
+    .priority-Low { color: green; }
+    /* table styling for issues in implementation*/
+    #Report-h4{margin-top: 20px;}
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; }
+    th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
+    th { background-color: #f8f9fa; color: #555; text-transform: uppercase; font-size: 0.8rem; }
+    tr:hover { background-color: #f1f1f1; }
+    
+    .priority-badge { padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; }
+    .bg-High { background: #ffebee; color: #c62828; }
+    .bg-Medium { background: #fff3e0; color: #ef6c00; }
+    .bg-Low { background: #e8f5e9; color: #2e7d32; }
+
+    /*Search Field Editing for all implementation  */
+    /* Main Container */
+    .search-container-implementation {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px; 
+    border-bottom: 2px solid #eee; 
+    padding-bottom: 20px;
+    }
+
+    /* The White Input Box */
+    .search-input-wrapper-implementation {
+    display: flex;
+    align-items: center;
+    background: white;
+    padding: 8px 15px;
+    border-radius: 5px; /* Fully rounded sides */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Soft shadow */
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2); /* Strong shadow */
+    /*box-shadow: 0 0 15px rgba(59, 157, 250, 0.4); /* Glow shadow */
+    /*box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15); /* Medium shadow */
+    width: 600px;
+    }
+
+    .search-input-implementation {
+    border: none;
+    outline: none;
+    flex-grow: 1;
+    padding: 10px;
+    font-size: 16px;
+    }
+
+    /* The Green Search Button */
+    .search-button-implementation {
+    background-color: #28a745;; /* Brighter blue from the image */
+    color: white;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 5px; /* Slightly less rounded than the input */
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(59, 157, 250, 0.2);
+    transition: background 0.2s;
+    }
+
+    .search-button-implementation:hover {
+    background-color: #3eba5b;
+    }
+    /*End of Search Field for all implementation  */
+
+    /* Beginning for User management */
+        h1, h2 {
+            color: var(--text-dark);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        /* Form Styles */
+        .form-section {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .form-griduser {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 5px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .form-group input, .form-group select {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+
+        .btn-primary {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #45a049;
+        }
+
+        /* Table Styles */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background-color: var(--secondary-color);
+            font-weight: 600;
+        }
+
+        /* Action Buttons in Table */
+        .action-btn {
+            padding: 6px 10px;
+            margin-right: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: white;
+        }
+
+        .btn-view { background-color: #3498db; } /* Blue */
+        .btn-view:hover { background-color: #2980b9; }
+        
+        .btn-edit { background-color: #f39c12; } /* Orange */
+        .btn-edit:hover { background-color: #d35400; }
+
+        .btn-delete { background-color: #e74c3c; } /* Red */
+        .btn-delete:hover { background-color: #c0392b; }
+
+        /* Modal Styles (Popup) */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5); /* Black w/ opacity */
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 50%;
+            max-width: 600px;
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .close-modal {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            position: absolute;
+            right: 20px;
+            top: 10px;
+        }
+
+        .close-modal:hover {
+            color: black;
+        }
+
+        .view-details-list strong {
+            display: inline-block;
+            width: 100px;
+        }
+        .view-details-list p {
+            margin: 10px 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        /* End of User management */
+
+        /* Beginning of setting formatting */
+        .settings-card {
+            background: white;
+            width: 100%;
+            max-width: 500px;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        h2 {
+            margin-top: 0;
+            font-size: 1.5rem;
+            color: #333;
+            border-bottom: 2px solid #f8f9fa;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+            font-size: 0.9rem;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-wrapper i {
+            position: absolute;
+            left: 12px;
+            color: #4caf50;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 12px 12px 40px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #4caf50;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+        }
+
+        .btn-update {
+            width: 100%;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: background 0.3s;
+            margin-top: 10px;
+        }
+
+        .btn-update:hover {
+            background-color: #43a047;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 0.9rem;
+        }
+
+        .error { background: #fdeded; color: #e74c3c; border: 1px solid #f5c2c7; display: block; }
+        .success { background: #edf7ed; color: #1e4620; border: 1px solid #badbcc; display: block; }
+
+        /* SVG Icon Style */
+        .icon { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; }
+    </style>
+</head>
+<body>
+    <!-- LOGIN PAGE -->
+    <div id="login-container">
+        <div class="login-left">
+            <h1>RICA<br>Contract<br>Management<br>System</h1>
+            <p style="margin-top: 20px;">Securely manage lifecycle, payments, and compliance.</p>
+        </div>
+        <div class="login-right">
+            <div class="login-form-box">
+                <h2>Login</h2>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="username" class="form-control" required placeholder="Enter username">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="password" class="form-control" required placeholder="Enter password">
+                    </div>
+                    <button type="submit" class="btn-primary" id="loginBtn">Login</button>
+                    <div id="loginError" class="error-msg">Invalid Credentials</div>
+                    
+                    <div class="login-links">
+                         <a href="#" onclick="alert('Contact Master Admin to create an account.')">Register New Account</a>
+                         <a href="#">Forgot Password?</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- DASHBOARD PAGE -->
+    <div id="dashboard-container">
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <img src="./img/IMG-20251028-WA0008.jpg" alt="RICA lOGO">
+            </div>
+            <ul class="nav-links">
+                <li><a href="#" class="active" onclick="nav('dashboard', this)"><i class="ph ph-squares-four"></i> &nbsp;&nbsp;Dashboard</a></li>
+                <li><a href="#" onclick="nav('add', this)"><i class="ph ph-plus-circle"></i> &nbsp;&nbsp;Add Contract</a></li>
+                <!-- NEW SETTINGS DROPDOWN -->
+                <li class="sidebar-dropdown" id="settingsDropdown">
+                    <a href="#" class="sidebar-dropdown-toggle" onclick="toggleDropdown(event, 'settingsDropdown')">
+                        <span style="display:flex; align-items:center; gap:10px;"><i class="ph ph-wrench"></i>Implementation</span>
+                        <i class="ph ph-caret-down"></i>
+                    </a>
+                    <ul class="sidebar-dropdown-content">
+                        <li><a href="#" onclick="nav('Delivalable', this, event)">Deliverable</a></li>
+                        <li><a href="#" onclick="nav('Payment', this, event)"></i>Payment</a></li>
+                        <li><a href="#" onclick="nav('Issues', this, event)">Issues</a></li>
+                        <li><a href="#" onclick="nav('Evaluation', this, event)">Evaluation</a></li>
+                        <li><a href="#" onclick="nav('Amendment', this, event)">Amendment</a></li>
+                    </ul>
+                </li>
+                <!-- <i class="ph ph-check-square"></i><i class="ph ph-currency-dollar"></i><i class="ph ph-warning-octagon"></i><i class="ph ph-chart-line"></i><i class="ph ph-file-text"></i> -->
+                <!-- END NEW SETTINGS DROPDOWN -->
+                <!-- <li><a href="#" onclick="nav('active', this)"><i class="ph ph-folder-open"></i> &nbsp;&nbsp;Active Contracts</a></li> -->
+                <!-- <li><a href="#" onclick="nav('sign', this)"><i class="ph ph-pencil"></i> &nbsp;&nbsp;Sign Contract</a></li> -->
+                <li><a href="#" onclick="nav('archived', this)"><i class="ph ph-archive"></i> &nbsp;&nbsp;Archived</a></li>
+                <!-- <li><a href="#" onclick="nav('payments', this)"><i class="ph ph-currency-dollar"></i> &nbsp;&nbsp;Track Payments</a></li> -->
+                <li id="adminLink" style="display:none;"><a href="#" onclick="nav('users', this)"><i class="ph ph-users"></i> &nbsp;&nbsp;User Mgmt</a></li>
+                <li><a href="#" onclick="nav('settings', this)"><i class="ph ph-gear"></i> &nbsp;&nbsp;Settings</a></li>
+            </ul>
+        </nav>
+
+        <div class="main-content">
+            <!-- TOP BAR (Modified) -->
+            <div class="top-bar">
+                <div style="display:flex; align-items:center;">
+                    <i class="ph ph-list burger-icon" onclick="toggleSidebar()"></i>
+                    <div class="page-title" id="pageTitle">Dashboard Overview</div>
+                </div>
+                
+                <!-- User Profile with Dropdown (#1) -->
+                <div class="user-profile-container" onclick="toggleUserDropdown()">
+                    <div class="user-profile">
+                        <div class="user-avatar" id="userInitials">U</div>
+                        <div class="user-info">
+                            <div class="user-name" id="displayUsername">User</div>
+                            <div class="user-role" id="displayRole">Role</div>
+                        </div>
+                        <i class="ph ph-caret-down dropdown-arrow"></i>
+                    </div>
+                    <!-- The Dropdown -->
+                    <div class="profile-dropdown" id="profileDropdown">
+                        <a href="#" class="dropdown-item" onclick="nav('settings', null)"><i class="ph ph-user-circle"></i> Profile</a>
+                        <div class="dropdown-divider"></div>
+                        <a href="#" class="dropdown-item" onclick="logout()"><i class="ph ph-sign-out"></i> Logout</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="scroll-area">
+                
+                <!-- DASHBOARD HOME -->
+                <div id="sec-dashboard">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-info">
+                                <h4>Total Contracts</h4>
+                                <div class="count" id="total-contracts" style="color:white;">0</div>
+                                <!-- <h2 id="totalContracts">0</h2> -->
+                            </div>
+                            <div class="stat-icon"><i class="ph ph-files"></i></div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-info">
+                                <h4>Total Pending Contract</h4>
+                                <div class="count" id="pending-contracts" style="color:white;">0</div>
+                                <!-- <h2 id="activeBudget" style="color:white;">0</h2> -->
+                            </div>
+                            <div class="stat-icon"><i class="ph ph-coins"></i></div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-info">
+                                <h4>Total Completed</h4>
+                                <div class="count" id="completed-contracts" style="color:white;">0</div>
+                                <!-- <h2 style="color:white;">0</h2> -->
+                            </div>
+                            <div class="stat-icon"><i class="ph ph-warning-circle"></i></div>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                            <h3>All Recent Contracts</h3>
+                            <!-- Updated Header Section -->
+                            <div class="section-header">
+                                <!-- Left Side: Title -->
+                                <span id="span">Active Contract</span>
+
+                                <!-- Right Side: Actions (Search + Button) -->
+                                <div class="header-actions">
+                                    <!-- Search Box -->
+                                    <div class="search-box">
+                                        <i class="ph ph-magnifying-glass"></i>
+                                        <input type="text" placeholder="Search contracts..." onkeyup="filterTable(this.value)">
+                                    </div>
+                                    
+                                    <!-- New Contract Button -->
+                                    <button class="btn-primary btn-small" onclick="nav('add', null)">
+                                        <i class="ph ph-plus"></i> New Contract
+                                    </button>
+                                </div>
+                            </div>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Contract Name</th>
+                                <th>Service Provider</th>
+                                <th>End Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentTableBody"></tbody>
+                    </table>
+                    <!-- Table Footer / Pagination (#4) -->
+                    <div class="table-footer">
+                        <div class="pagination-info">Showing 1 to 5 of <span id="totalItems">0</span> entries</div>
+                        <div class="pagination-controls">
+                            <button class="page-btn">Previous</button>
+                            <button class="page-btn active">1</button>
+                            <button class="page-btn">2</button>
+                            <button class="page-btn">3</button>
+                            <button class="page-btn">Next</button>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+
+                <!-- ADD CONTRACT WIZARD -->
+                <div class="scroll-area">
+                <div id="sec-add" class="wizard-container hidden">
+                    <div class="wizard-steps">
+                        <!-- Clickable Step Tabs -->
+                        <div class="step-tab active" id="tab-step1" onclick="goToStep(1)">1.  Create New Contract</div>
+                        <div class="step-tab" id="tab-step2" onclick="goToStep(2)">2. Other Contract Information</div>
+                    </div>
+
+                    <form id="addContractForm">
+                        <!-- STEP 1 -->
+                        <div id="step1" class="wizard-step active">
+                            <div class="form-grid">
+                                <div class="Header-modify">Create New Contract:</div>
+                                <div class="form-row">
+                                    <div class="input-group"><input type="text" name="contract_name" id="contract-name" class="input-field" required><label for="c-name" class="input-label">Contract Name</label></div>
+                                    <div class="input-group"><input type="text" name="contract_nber" id="contract-number" class="input-field" required><label for="c-number" class="input-label">Contract Number</label></div>
+                                    <div class="input-group">
+                                        <select name="contract_type" type="text" id="contract-type" class="input-field" required>
+                                            <option value="" disabled selected>Select Type of Contract</option>
+                                            <option value="Fixed-price">Fixed-price contract</option>
+                                            <option value="Time and materials">Time and materials contract</option>
+                                            <option value="NDA">NDA</option>
+                                            <option value="Lease">Lease agreement</option>
+                                            <option value="Sales">Sales contract</option>
+                                        </select>
+                                        <label for="c-type" class="input-label">Contract Type</label>
+                                    </div>
+                                </div>
+                                <div class="Header-modify">Service Provider:</div>
+                                <div class="form-row">
+                                    <div class="input-group"><input type="text" name="service_provider" id="service-name" class="input-field" required><label for="c-name" class="input-label">Name</label></div>
+                                    <div class="input-group"><input type="text" name="service_provider_phone" id="service-number" class="input-field"  oninput="validateNumber(this)" required><label for="c-number" class="input-label">Phone Number</label></div>
+                                    <div class="error-text">Numbers only.</div>
+                                    <div class="input-group" ><input type="text" name="service_provider_email" id="service-email" class="input-field" oninput="validateEmail(this)" required><label for="c-type" class="input-label">E-mail</label></div>
+                                    <div class="error-text">Invalid email.</div>
+                                </div>
+                                <div class="Header-modify">General Information:</div>
+                                <div class="form-row">
+                                    <div class="input-group"><input type="text" name="public_institution" id="Institution" class="input-field" required><label for="c-name" class="input-label">Public Institution</label></div>
+                                    <div class="input-group"><input type="text" name="tin_number" id="tin-number" class="input-field" required><label for="c-number" class="input-label">Institution TIN</label></div>
+                                </div>
+                                <div class="Header-modify">Contract Manager:</div>
+                                <div class="form-row">
+                                    <div class="input-group"><input type="text" name="manager_name" id="manger-name" class="input-field" required><label for="c-name" class="input-label">Name</label></div>
+                                    <div class="input-group"><input type="text" name="manager_phone" id="manager-number" class="input-field" required><label for="c-number" class="input-label">Phone Number</label></div>
+                                    <div class="input-group"><input type="text" name="manager_email" id="manager-email" class="input-field" required><label for="c-type" class="input-label">E-mail</label></div>
+                                </div>
+                                <div class="Header-modify">Date:</div>
+                                <div class="form-row">
+                                    <div class="input-group"><input type="date" name="start_date" id="start-date" class="input-field" required><label for="c-name" class="input-label">Starting Date</label></div>
+                                    <div class="input-group"><input type="date" name="end_date" id="end-date" class="input-field" required><label for="c-number" class="input-label">Ending Date</label></div>
+                                </div>                                
+                                <div class="Header-modify">Contract Funding:</div>
+                                <div class="form-row">
+                                    <div class="input-group">
+                                        <select name="budget_source" type="text" id="source-of-budget" class="input-field" required>
+                                            <option value="" disabled selected>Select Source of Budget</option>
+                                            <option value="Institution's Funds">Institution's Funds</option>
+                                            <option value="Partner's Fund">Partner's Fund</option>
+                                            <option value="Government Grant">Government Grant</option>
+                                        </select>
+                                        <label for="c-type" class="input-label">Source of Budget</label>
+                                    </div>
+                                    <div class="input-group"><input type="text" name="partner_name" id="partner-name" class="input-field" required><label for="c-number" class="input-label">Partner's Name</label></div>
+                                    <div class="input-group"><input type="text" name="project_name" id="project-name" class="input-field" required><label for="c-type" class="input-label">Project Name</label></div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="input-group"><input type="text" name="budget_allocated" id="allocated-budget" class="input-field" required><label for="c-number" class="input-label">Allocated Budget</label></div>
+                                    <div class="input-group"><input type="text" name="contract_value" id="contract-value" class="input-field" required><label for="c-number" class="input-label">Contract Value</label></div>
+                                </div>
+                                <!-- End of Contract Funding -->
+                                <!--  Adding Activity row -->
+                                <div class="Header-modify">Schedule of Activities:</div>
+                                <div class="form-row">
+                                    <div id="step-activity" class="wizard-for-activity">
+                                        <div class="activity-table-header">
+                                            <div>Activity Name</div><div>Timeline</div><div>Cost</div><div>Comment</div><div></div>
+                                        </div>
+                                        <div id="activitiesContainer">
+                                            <div class="activity-row">
+                                                <div class="input-wrapper"><input type="text"  id="activity-name" placeholder="Name" required data-activity-field="name"></div>
+                                                <div class="input-wrapper"><input type="text"  id="time-line" placeholder="Time" required data-activity-field="timeline"></div>
+                                                <div class="input-wrapper"><input type="number"  id="cost" placeholder="0" required data-activity-field="cost"></div>
+                                                <div class="input-wrapper"><input type="text"  id="deliverable" placeholder="Comment" required data-activity-field="deliverable"></div>
+                                                <button type="button" style="color:#d32f2f; border:none; bg:none; cursor:pointer;" onclick="removeRow(this)"><i class="ph ph-trash"></i></button>
+                                            </div>
+                                        </div>
+                                        <button type="button" class="btn-add-row" onclick="addActivityRow()">Add New Activity</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="wizard-actions"> 
+                                <button class="btn-secondary" onclick="nav('dashboard', null)"><i class="ph ph-x-circle"></i> Cancel</button>   
+                                <button type="submit" class="btn-primary"><i class="ph ph-check-circle"></i>Save Contract</button>
+                            </div>
+                        </div> 
+                        <!-- STEP 2 -->
+                        <div id="step2" class="wizard-step">
+                            <div class="Header-modify">Contract Manager:</div>
+                            <div class="form-row">
+                                <div class="input-group"><input type="text" id="c-name" class="input-field" placeholder=" "><label for="c-name" class="input-label">Milestone/Progress</label></div>
+                                <div class="input-group"><input type="text" id="c-name" class="input-field" placeholder=" "><label for="c-name" class="input-label">Challenges Encountered</label></div>
+                                <div class="input-group"><input type="text" id="c-name" class="input-field" placeholder=" "><label for="c-name" class="input-label">Suggested Solution</label></div>
+                            </div>
+                            <div class="form-row">
+                                <div class="input-group"><input type="text" id="c-name" class="input-field" placeholder=" "><label for="c-name" class="input-label">Time to Resolve</label></div>
+                                <div class="input-group"><input type="text" id="c-name" class="input-field" placeholder=" "><label for="c-name" class="input-label">Consequences on Performance</label></div>
+                                <div class="input-group"><input type="text" id="c-name" class="input-field" placeholder=" "><label for="c-name" class="input-label">Addendum</label></div>
+                            </div>
+                            <div class="form-row">
+                                <div class="input-group"><input type="text" id="c-name" class="input-field" placeholder=" "><label for="c-name" class="input-label">Reason for Addendum</label></div>
+                                <div class="input-group">
+                                    <select name="contract_type" type="text" id="c-type" class="input-field" placeholder=" ">
+                                        <option value="" disabled selected>Select Status</option>
+                                        <option value="Institution's Funds">Pending</option>
+                                        <option value="Partner's Fund">Fails</option>
+                                        <option value="Government Grant">Completed</option>
+                                    </select>
+                                    <label for="c-type" class="input-label">Contract Status</label>
+                                </div>
+                            </div>                           
+                            <div class="wizard-actions">
+                                <button type="button" class="btn-secondary" onclick="goToStep(1)"><i class="ph ph-arrow-left"></i>Back</button>
+                                <button type="submit" class="btn-primary"><i class="ph ph-check-circle"></i>Save Contract</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                </div>
+
+                <!-- inside the implementation navigation tab -->
+                <!-- Deliverable navigation tab -->
+                <div class="scroll-area"> 
+                <div id="sec-Delivalable" class="hidden">
+                    <div class="table-container">
+                        <!-- 4. NEW: Track Activities Content -->
+                        <div id="track-activities" class="content-area">
+                            <h2 class="text-3xl font-semibold text-gray-800 mb-6">Track Contract Activities</h2>
+                            <div class="bg-white p-6 rounded-xl shadow-lg">
+                                <!-- Search Section -->
+                                <div class="search-container-implementation">
+                                    <div class="search-input-wrapper-implementation">
+                                        <span></span> <input type="text" id="contract-search-query" placeholder="Enter Contract Name (e.g., Water Supplier)" class="search-input-implementation">
+                                        <span class="icon mic-icon"></span> 
+                                    </div>
+                                    <button class="search-button-implementation" onclick="searchContract()"><i class="fa-solid fa-magnifying-glass mr-2"></i>&nbsp;Search Contract</button>
+                                </div>
+                                <div id="search-message" class="mb-4 font-semibold text-center hidden"></div>
+
+                                <!-- Contract Details (Hidden until found) -->
+                                <div id="contract-details" class="p-4 bg-gray-50 border-l-4 border-green-500 rounded-lg mb-6 hidden">
+                                    <h3 class="text-xl font-bold text-gray-800">Contract: <span id="display-contract-name" class="text-green-700"></span></h3>
+                                    <p class="text-sm text-gray-600">Manager: <span id="display-manager"></span> | Status: <span id="display-status"></span></p>
+                                </div>
+
+                                <!-- Activities Table -->
+                                <div id="activities-section" class="overflow-x-auto hidden">
+                                    <h4 class="text-lg font-semibold mb-4 text-gray-700">Activities for this Contract</h4>
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Activity Name</th>
+                                                <th>Timeline</th>
+                                                <th>Cost (Frw)</th>
+                                                <th>Deliverable</th>
+                                                <th class="w-40">Status</th>
+                                                <th class="w-16">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="activity-table-body">
+                                            <!-- Activities will be loaded here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- END NEW: Track Activities Content -->
+                    </div>
+                </div>
+                </div> <!--  End of the scroll-area -->
+
+                <!-- Beginning of payment on implementation -->
+                <div class="scroll-area">
+                <div id="sec-Payment" class="hidden">
+                    <div class="container mt-5">
+                        <div class="card p-4 shadow-sm">
+                            <h3 id="payment-search-header">Search Contract</h3>
+                            <div class="search-container-implementation">
+                                <div class="search-input-wrapper-implementation">
+                                    <span></span> <input type="text" id="searchId" placeholder="Enter Contract Name (e.g., Water Supplier)" class="search-input-implementation">
+                                    <span class="icon mic-icon"></span> 
+                                </div>
+                                <button class="search-button-implementation" onclick="searchContractP()"><i class="fa-solid fa-magnifying-glass mr-2"></i>&nbsp;Search Contract</button>
+                            </div>
+
+                            <div id="contractResult" class="d-none border-top pt-3">
+                                <p id="contract-found"><strong>Contract Found:</strong> <span id="displayClient"></span></p>
+                                <button class="btn btn-success" onclick="togglePaymentForm()">+ Add Payment</button>
+                            </div>
+                        </div>
+
+                        <div id="paymentFormSection" class="card mt-4 p-4 d-none">
+                            <h4>Fill Payment Information</h4>
+                            <form id="paymentForm">
+                                <input type="hidden" id="form_contract_id">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label>Payment Method</label>
+                                        <select id="method" class="form-select" required>
+                                            <option value="Bank">Bank</option>
+                                            <option value="Mobile Money">Mobile Money</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label>Amount</label>
+                                        <input type="number" id="amount" class="form-control" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label>Due Date</label>
+                                        <input type="date" id="dueDate" class="form-control" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label>Attachment (Image/PDF)</label>
+                                        <input type="file" id="attachment" class="form-control">
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Submit Payment</button>
+                            </form>
+                        </div>
+
+                        <div id="paymentListSection" class="mt-5 d-none">
+                            <h4>Payment History</h4>
+                            <table class="table table-striped bg-white">
+                                <thead>
+                                    <tr>
+                                        <th>Method</th>
+                                        <th>Amount</th>
+                                        <th>Due Date</th>
+                                        <th>Status</th>
+                                        <th>Attachment</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="paymentTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                </div>  <!-- End  of payment on implementation -->
+
+                <!-- Beginning of issues on implementation -->
+                <div class="scroll-area">
+                <div id="sec-Issues" class="hidden">
+                    <div class="table-container">
+                        <div class="container">
+                            <h2>Contract Search</h2>
+                            <div class="search-container-implementation">
+                                <div class="search-input-wrapper-implementation">
+                                    <span></span> <input type="text" id="contractSearch" placeholder="Enter Contract Name (e.g., Water Supplier)" class="search-input-implementation">
+                                    <span class="icon mic-icon"></span> 
+                                </div>
+                                <button class="search-button-implementation" onclick="searchContractissue()"><i class="fa-solid fa-magnifying-glass mr-2"></i>&nbsp;Search Contract</button>
+                            </div>
+
+                            <div id="contractResultissue" class="hidden">
+                                <h3>Contract Found: <span id="displayContractNum"></span></h3>
+                                <button class="btn-report" onclick="toggleForm()">Report New Issue</button>
+                                
+                                <div id="issueForm" class="hidden">
+                                    <h4>Submit New Issue</h4>
+                                    <input type="text" class="issue-input" id="issueTitle" placeholder="Issue Title">
+                                    <textarea class="issue-textarea" id="issueDesc" placeholder="Description of issue"></textarea>
+                                    <select class="issue-select" id="issuePriority">
+                                        <option value="High">High</option>
+                                        <option value="Medium">Medium</option>
+                                        <option value="Low">Low</option>
+                                    </select>
+                                    <input class="issue-input" type="date" id="issueDate">
+                                    <button class="btn-report" onclick="submitIssue()">Submit Issue</button>
+                                </div>
+
+                                <!-- <hr>
+                                <h4>Reported Issues for this Contract</h4> -->
+                                <h4 id="Report-h4">Reported Issues for this Contract</h4>
+                                <div id="tableContainer">
+                                    <table id="issueTable" class="hidden">
+                                        <thead>
+                                            <tr>
+                                                <th>Title</th>
+                                                <th>Description</th>
+                                                <th>Priority</th>
+                                                <th>Date Reported</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="issueTableBody">
+                                            </tbody>
+                                    </table>
+                                    <p id="noIssuesMessage">No issues reported for this contract yet.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                </div> 
+                <!-- End  of issues on implementation -->
+                <!-- Beginning of evaluation on implementation -->
+                <div class="scroll-area">
+                <div id="sec-Evaluation" class="hidden">
+                    <div class="table-container">
+                        <div class="container">
+                            <h2>Contract Evaluation</h2>
+                            <div class="search-container-implementation">
+                                <div class="search-input-wrapper-implementation">
+                                    <span></span> <input type="text" id="contractNum" placeholder="Enter Contract Name (e.g., Water Supplier)" class="search-input-implementation">
+                                    <span class="icon mic-icon"></span> 
+                                </div>
+                                <button class="search-button-implementation" onclick="evaluateContract()"><i class="fa-solid fa-magnifying-glass mr-2"></i>&nbsp;Search Contract</button>
+                            </div>
+
+                            <div id="evaluationContent" class="hidden">
+                                <h3 style="color: #1e293b; display: inline-block; padding-bottom: 5px;">Contract Performance</h3>
+                                <div class="performance-header">
+                                    <div>
+                                        <p style="margin: 0; color: #64748b; font-size: 0.9rem;">Overall Progress</p>
+                                        <h3 id="completionRatio" style="margin: 5px 0;">0 of 0 Activities</h3>
+                                    </div>
+                                    <div style="text-align: center; border-left: 1px solid #ddd; border-right: 1px solid #ddd; padding: 0 30px;">
+                                        <p style="margin: 0; color: #64748b; font-size: 0.9rem;">Budget vs Actual (Spent)</p>
+                                        <h3 style="margin: 5px 0;">
+                                            <span id="spentAmount" style="color: #4CAF50;">Frw 0</span> 
+                                            <small style="color: #94a3b8; font-size: 0.8rem;"> / <span id="totalBudget">Frw 0</span></small>
+                                        </h3>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <p style="margin: 0; color: #64748b; font-size: 0.9rem;">Efficiency Score</p>
+                                        <h3 id="percentageText" style="margin: 5px 0; color: #4CAF50;">0%</h3>
+                                    </div>
+                                </div>
+
+                                <div class="progress-container">
+                                    <div class="progress-bar-bg">
+                                        <div id="progressBar" class="progress-bar-fill"></div>
+                                        <div class="progress-text" id="barText">0%</div>
+                                    </div>
+                                </div>
+
+                                <h4>Activity Detailed Breakdown</h4>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Activity Name</th>
+                                            <th>Timeline</th>
+                                            <th>Cost</th>
+                                            <th>Deliverable</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="activityTableBody">
+                                        </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                </div>  <!-- End  of evaluation on implementation -->
+
+                <!-- Beginning of amendament on implementation -->
+                <div class="scroll-area">
+                <div id="sec-Amendment" class="hidden">
+                    <div class="form-card">
+                        <div class="page-content">
+                            <div class="header-with-button">
+                                <h2>Contract Amendments</h2>
+                                <button class="btn-primary">Request Change</button>
+                            </div>
+                            
+                            <p style="color:var(--text-muted); margin-bottom: 20px;">
+                                Amendments track changes to the original scope, cost, or timeline.
+                            </p>
+
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Description</th>
+                                        <th>Impact Cost</th>
+                                        <th>Impact Days</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>#A003</td>
+                                        <td>Addition of a dedicated landing page.</td>
+                                        <td style="color:var(--danger);">+$800.00</td>
+                                        <td style="color:var(--danger);">+3 Days</td>
+                                        <td><span class="status-pill status-inprogress">Pending Review</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>#A002</td>
+                                        <td>Removed social media integration.</td>
+                                        <td style="color:var(--success);">-$200.00</td>
+                                        <td style="color:var(--success);">-1 Day</td>
+                                        <td><span class="status-pill status-accepted">Approved</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                </div>  <!-- End  of issues on implementation -->
+                <!-- End of the inside of the implementation navigation tab -->
+                 
+                <!-- Placeholders -->
+                <div id="sec-archived" class="hidden"><div class="table-container"><h3>Archived Contracts</h3><p>Loading from database...</p></div></div>
+                <!-- Beginning of the User Management for users -->
+                <div class="scroll-area">
+                <div id="sec-users" class="hidden">
+                    <div class="table-container">
+                        <div class="container">
+                            <h1>User Management</h1>
+
+                            <div class="form-section">
+                                <h2>Add New User</h2>
+                                <form id="addUserForm">
+                                    <div class="form-griduser">
+                                        <div class="form-group">
+                                            <label for="addUsername">Username</label>
+                                            <input type="text" id="addUsername" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="addPassword">Password</label>
+                                            <input type="password" id="addPassword" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="addName">Full Name</label>
+                                            <input type="text" id="addName" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="addEmail">Email</label>
+                                            <input type="email" id="addEmail" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="addRole">Role</label>
+                                            <select id="addRole" required>
+                                                <option value="employee">Employee</option>
+                                                <option value="master_admin">Master Admin</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Create User</button>
+                                </form>
+                            </div>
+
+                            <div>
+                                <h2>Existing Users</h2>
+                                <table id="usersTable">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Role</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div id="viewModal" class="modal">
+                            <div class="modal-content">
+                                <span class="close-modal" onclick="closeModal('viewModal')">&times;</span>
+                                <h2>User Details</h2>
+                                <div id="viewModalBody" class="view-details-list">
+                                    </div>
+                            </div>
+                        </div>
+
+                        <div id="editModal" class="modal">
+                            <div class="modal-content">
+                                <span class="close-modal" onclick="closeModal('editModal')">&times;</span>
+                                <h2>Update User Information</h2>
+                                <form id="editUserForm">
+                                    <input type="hidden" id="editUserId">
+                                    <div class="form-griduser">
+                                        <div class="form-group">
+                                            <label for="editUsername">Username</label>
+                                            <input type="text" id="editUsername" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="editPassword">Password</label>
+                                            <input type="text" id="editPassword" required> 
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="editName">Full Name</label>
+                                            <input type="text" id="editName" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="editEmail">Email</label>
+                                            <input type="email" id="editEmail" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="editRole">Role</label>
+                                            <select id="editRole" required>
+                                                <option value="employee">Employee</option>
+                                                <option value="master_admin">Master Admin</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                </div>
+                <!-- End of the User Management for users -->
+                <!-- Beginning of the Setting -->
+                <div class="scroll-area">
+                <div id="sec-settings" class="hidden">
+                    <div class="form-card">
+                        <div class="settings-card">
+                            <h2>Change Password</h2>
+                            <div id="statusMsg" class="message"></div>
+                            <form id="changePasswordForm">
+                                <div class="form-group">
+                                    <label for="currentPassword">Current Password</label>
+                                    <div class="input-wrapper">
+                                        <svg class="icon" viewBox="0 0 24 24"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                                        <input type="password" id="currentPassword" placeholder="Enter current password" required>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="newPassword">New Password</label>
+                                    <div class="input-wrapper">
+                                        <svg class="icon" viewBox="0 0 24 24"><path d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+                                        <input type="password" id="newPassword" placeholder="Minimum 6 characters" required>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="confirmPassword">Confirm New Password</label>
+                                    <div class="input-wrapper">
+                                        <svg class="icon" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        <input type="password" id="confirmPassword" placeholder="Repeat new password" required>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn-update">
+                                    <svg class="icon" style="width:20px; height:20px;" viewBox="0 0 24 24"><path d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+                                    Update Password
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                </div>
+                <!-- End of the Setting -->
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // === 1. GLOBAL VARIABLES ===
+        const API_URL = 'http://localhost:3000/api';
+        let currentUser = null;
+
+        /**
+         * New function to switch between steps by number, without mandatory validation.
+         * @param {number} stepNumber - The step to navigate to (1 or 2).
+         */
+        function goToStep(stepNumber) {
+            document.getElementById('step1').classList.remove('active');
+            document.getElementById('step2').classList.remove('active');
+            document.getElementById('tab-step1').classList.remove('active');
+            document.getElementById('tab-step2').classList.remove('active');
+
+            document.getElementById('step' + stepNumber).classList.add('active');
+            document.getElementById('tab-step' + stepNumber).classList.add('active');
+        }
+
+       // implementation dropdown
+        function toggleDropdown(event, id) {
+            event.preventDefault();
+            const dropdown = document.getElementById(id);
+            dropdown.classList.toggle('open');
+            // Ensure only one main link can be 'active' at a time for aesthetic purposes
+            document.querySelectorAll('.nav-links > li > a').forEach(a => {
+                if(a.parentElement.id !== id) {
+                    a.classList.remove('active');
+                }
+            });
+            // Add or remove 'active' class on the settings toggle link itself
+            dropdown.querySelector('.sidebar-dropdown-toggle').classList.toggle('active');
+        }
+
+        //For the implementation of dropdown
+        function nav(sec, el, event) {
+            if(event) event.preventDefault(); // Prevent default link behavior
+            
+            // 1. Hide all main content sections
+            document.querySelectorAll('.scroll-area > div').forEach(d => d.classList.add('hidden'));
+            const secElement = document.getElementById('sec-'+sec);
+            if (secElement) secElement.classList.remove('hidden');
+
+            // 2. Update Page Title
+            let title = 'Dashboard Overview';
+            if (sec === 'add') title = 'Create Contract';
+            else if (sec === 'active') title = 'Active Contracts';
+            else if (sec === 'profile') { title = 'User Profile'; setupProfileForm(); }
+            else if (sec === 'change-password') title = 'Change Password';
+            else if (sec === 'implementation') title = 'System Implementation';
+
+            document.getElementById('pageTitle').innerText = title;
+            
+            // 3. Handle sidebar active link update (Submenus need special handling)
+            // Remove active state from ALL links
+            document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+            document.querySelectorAll('.sidebar-dropdown').forEach(d => d.classList.remove('open'));
+            
+            if(el) { 
+                el.classList.add('active');
+                
+                // If the clicked element is inside a dropdown submenu, keep the parent dropdown open and active
+                const parentDropdown = el.closest('.sidebar-dropdown');
+                if(parentDropdown) {
+                    parentDropdown.classList.add('open');
+                    parentDropdown.querySelector('.sidebar-dropdown-toggle').classList.add('active');
+                }
+            } else {
+                 // For buttons like "New Contract" on the dashboard, find and activate the corresponding sidebar link
+                const correspondingLink = document.querySelector(`.nav-links a[onclick*="nav('${sec}'"]`);
+                if(correspondingLink) {
+                    correspondingLink.classList.add('active');
+                }
+            }
+        }
+
+       // Validate for checking errors
+        function validateNumber(input) {
+            if (/[^0-9]/.test(input.value)) { input.parentElement.classList.add('error'); input.value = input.value.replace(/[^0-9]/g, ''); } 
+            else { input.parentElement.classList.remove('error'); }
+        }
+        function validateEmail(input) {
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value) && input.value !== "") input.parentElement.classList.add('error');
+            else input.parentElement.classList.remove('error');
+        }
+
+        // === 2. CHECK AUTH ON LOAD ===
+        window.onload = () => {
+            const storedUser = localStorage.getItem('rica_user');
+            if (storedUser) {
+                currentUser = JSON.parse(storedUser);
+                showDashboard();
+            }
+        };
+
+        // TOGGLE USER DROPDOWN
+        function toggleUserDropdown() {
+            const dropdown = document.getElementById('profileDropdown');
+            dropdown.classList.toggle('active');
+        }
+
+        // CLOSE DROPDOWN IF CLICKED OUTSIDE
+        window.addEventListener('click', function(e) {
+            if (!document.querySelector('.user-profile-container').contains(e.target)) {
+                document.getElementById('profileDropdown').classList.remove('active');
+            }
+        });
+
+        // === 3. LOGIN FUNCTIONALITY ===
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('loginError');
+            const loginBtn = document.getElementById('loginBtn');
+
+            // Reset UI
+            errorDiv.style.display = 'none';
+            loginBtn.innerText = 'Logging in...';
+            loginBtn.disabled = true;
+
+            try {
+                const response = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.ok) {
+                    const userData = await response.json();
+                    localStorage.setItem('rica_user', JSON.stringify(userData));
+                    currentUser = userData;
+                    showDashboard();
+                } else {
+                    errorDiv.innerText = "Invalid Username or Password";
+                    errorDiv.style.display = 'block';
+                }
+            } catch (err) {
+                errorDiv.innerText = "Server connection failed. Is node server.js running?";
+                errorDiv.style.display = 'block';
+                console.error(err);
+            } finally {
+                loginBtn.innerText = 'Login';
+                loginBtn.disabled = false;
+            }
+        });
+
+        // === 4. LOGOUT FUNCTIONALITY ===
+        function logout() {
+            localStorage.removeItem('rica_user');
+            currentUser = null;
+            
+            // Hide Dashboard, Show Login
+            document.getElementById('dashboard-container').classList.remove('dashboard-visible');
+            document.getElementById('login-container').classList.remove('login-hidden');
+            
+            // Reset form
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        }
+        // SHOW DASHBOARD
+        function showDashboard() {
+            document.getElementById('login-container').classList.add('login-hidden');
+            setTimeout(() => {
+                document.getElementById('dashboard-container').classList.add('dashboard-visible');
+                document.getElementById('displayUsername').innerText = currentUser.name || currentUser.username;
+                document.getElementById('userInitials').innerText = (currentUser.name || currentUser.username).charAt(0).toUpperCase();
+                document.getElementById('displayRole').innerText = currentUser.role.replace('_', ' ').toUpperCase();
+
+                if(currentUser.role === 'master_admin') {
+                    document.getElementById('adminLink').style.display = 'block';
+                } else {
+                    document.getElementById('adminLink').style.display = 'none';
+                }
+                loadDashboardData();
+            }, 300);
+        }
+
+        // === 6. LOAD DATA (Contracts) ===
+        async function loadDashboardData() {
+            try {
+                const response = await fetch(`${API_URL}/contracts`);
+                if (response.ok) {
+                    const contracts = await response.json();
+                    
+                    // Update Stats
+                    // document.getElementById('totalContracts').innerText = contracts.length;
+                    
+                    // Populate Table
+                    const tbody = document.getElementById('recentTableBody');
+                    tbody.innerHTML = '';
+                    
+                    contracts.forEach(c => {
+                        let statusClass = 'status-active';
+                        if(c.status === 'Archived') statusClass = 'status-archived';
+                        if(c.status === 'Pending') statusClass = 'status-pending';
+                        if(c.status === 'Failed') statusClass = 'status-failed';
+
+                        // Format date
+                        const endDate = c.end_date ? new Date(c.end_date).toLocaleDateString() : 'N/A';
+
+                        tbody.innerHTML += `
+                            <tr>
+                                <td><b>${c.id}</b></td>
+                                <td>${c.contract_name}</td>
+                                <td>${c.service_provider}</td>
+                                <td>${endDate}</td>
+                                <td><span class="status-badge ${statusClass}">${c.status || 'Active'}</span></td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch (err) {
+                console.error("Failed to load contracts", err);
+            }
+        }
+
+        // === 7. ADD CONTRACT LOGIC (UPDATED) ===
+        document.getElementById('addContractForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries()); // Contract details (Step 1)
+
+            // --- COLLECT ACTIVITIES DATA (Step 2) ---
+            const activities = [];
+            document.querySelectorAll('#activitiesContainer .activity-row').forEach(row => {
+                const activity = {};
+                let hasData = false;
+                
+                // Find all inputs within the row that have a data-activity-field attribute
+                row.querySelectorAll('input[data-activity-field]').forEach(input => {
+                    const fieldName = input.getAttribute('data-activity-field');
+                    const value = input.value.trim();
+                    activity[fieldName] = value;
+                    if (value) hasData = true; // Flag if any field in the row has data
+                });
+
+                // Only push the activity if at least one field was filled (prevents empty rows from being saved)
+                if (hasData) {
+                    activities.push(activity);
+                }
+            });
+
+            // Add the collected activities (as a JSON string) to the main data payload
+            data.activities = JSON.stringify(activities);
+            
+            // Cleanup numbers and formatting before sending
+            data.budget_allocated = parseFloat(data.budget_allocated.replace(/[^0-9.]/g, '')) || 0;
+            data.tin_number = data.tin_number.replace(/[^0-9]/g, '');
+
+            // --- API CALL ---
+            try {
+                const res = await fetch(`${API_URL}/contracts`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                if(res.ok) {
+                    alert("Contract and Activities Saved Successfully!");
+                    e.target.reset();
+                    // Re-initialize activities container to default one row
+                    document.getElementById('activitiesContainer').innerHTML = `
+                        <div class="activity-row">
+                            <div class="input-wrapper"><input type="text" placeholder="Activity Name" data-activity-field="name"></div>
+                            <div class="input-wrapper"><input type="text" placeholder="Timeline (e.g., Q4 2025)" data-activity-field="timeline"></div>
+                            <div class="input-wrapper"><input type="number" placeholder="Cost ($)" data-activity-field="cost"></div>
+                            <div class="input-wrapper"><input type="text" placeholder="Deliverable / Output" data-activity-field="deliverable"></div>
+                            <button type="button" style="color:red; border:none; background:none; cursor:pointer;" onclick="removeRow(this)"><i class="ph ph-trash"></i></button>
+                        </div>
+                    `;
+                    nav('dashboard', null);
+                    loadDashboardData();
+                } else {
+                    const error = await res.json();
+                    alert(`Error saving contract: ${error.error || res.statusText}`);
+                }
+            } catch(err) {
+                console.error("Fetch Error:", err);
+                alert("Server error. Check if the backend server is running.");
+            }
+        });
+
+        // SIMPLE FILTER
+        function filterTable(value) {
+            const rows = document.querySelectorAll("#recentTableBody tr");
+            value = value.toLowerCase();
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(value) ? "" : "none";
+            });
+        }
+
+        // NAVIGATION
+        function nav(sectionId, element) {
+            const sections = ['dashboard', 'add', 'Delivalable', 'Payment', 'Issues', 'Evaluation', 'Amendment', 'archived', 'users', 'settings'];
+            sections.forEach(id => document.getElementById('sec-' + id).classList.add('hidden'));
+            document.getElementById('sec-' + sectionId).classList.remove('hidden');
+            
+            const titles = {
+                'dashboard': 'Dashboard Overview', 
+                'add': 'Create New Contract', 
+                'Delivalable':'Delivalable',
+                'Payment':'Payment',
+                'Issues':'Issues',
+                'Evaluation':'Evaluation',
+                'Amendment':'Amendment',
+                'archived': 'Archived History',
+                'users': 'User Management',
+                'settings': 'Settings'
+            };
+            document.getElementById('pageTitle').innerText = titles[sectionId] || 'Overview';
+
+            if(element) {
+                document.querySelectorAll('.nav-links a').forEach(el => el.classList.remove('active'));
+                element.classList.add('active');
+            }
+            if(window.innerWidth <= 768) toggleSidebar();
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
+
+        // Adding Activity button
+        function addActivityRow() {
+            const div = document.createElement('div'); div.className = 'activity-row';
+            div.innerHTML = `
+            <div class="input-wrapper"><input type="text"  id="activity-name" placeholder="Name" required data-activity-field="name"></div>
+            <div class="input-wrapper"><input type="text"  id="time-line" placeholder="Time" required data-activity-field="timeline"></div>
+            <div class="input-wrapper"><input type="number"  id="cost" placeholder="0" required data-activity-field="cost"></div>
+            <div class="input-wrapper"><input type="text"  id="deliverable" placeholder="Comment" required data-activity-field="deliverable"></div>
+            <button type="button" style="color:#d32f2f; border:none; bg:none; cursor:pointer;" onclick="removeRow(this)"><i class="ph ph-trash"></i></button>`;
+            document.getElementById('activitiesContainer').appendChild(div);
+        }
+        // Code to remove the activities row if it doesn't need to be there
+        function removeRow(btn) { btn.parentElement.remove(); }
+        
+        // Initialize the first activity row on load
+        window.addEventListener('load', () => {
+             // Ensures the initial row has the correct attributes for data collection
+            const initialRow = document.querySelector('#activitiesContainer .activity-row');
+            if (initialRow) {
+                const inputs = initialRow.querySelectorAll('input');
+                inputs[0].setAttribute('data-activity-field', 'name');
+                inputs[1].setAttribute('data-activity-field', 'timeline');
+                inputs[2].setAttribute('data-activity-field', 'cost');
+                inputs[3].setAttribute('data-activity-field', 'deliverable');
+            }
+            loadDashboardData();
+        });
+        
+        // --- NEW ACTIVITY TRACKING LOGIC ---
+        // 1. Search Function
+        async function searchContract() {
+            const query = document.getElementById('contract-search-query').value.trim();
+            const msg = document.getElementById('search-message');
+            const detailsSection = document.getElementById('contract-details');
+            const activitiesSection = document.getElementById('activities-section');
+
+            msg.classList.add('hidden');
+            detailsSection.classList.add('hidden');
+            activitiesSection.classList.add('hidden');
+            currentContractId = null;
+            
+            if(!query) {
+                msg.textContent = "Please enter a contract name to search.";
+                msg.classList.remove('hidden');
+                msg.classList.remove('text-green-500');
+                msg.classList.add('text-red-500');
+                return;
+            }
+
+            try {
+                msg.textContent = "Searching...";
+                msg.classList.remove('hidden');
+                msg.classList.remove('text-red-500');
+                msg.classList.add('text-blue-500');
+
+                // Call backend to search contract
+                const res = await fetch(`${API_URL}/contracts/search?name=${encodeURIComponent(query)}`);
+                const data = await res.json();
+
+                if(res.ok && data.length > 0) {
+                    const contract = data[0];
+                    currentContractId = contract.id;
+                    
+                    // Display contract details
+                    document.getElementById('display-contract-name').textContent = contract.contract_name;
+                    document.getElementById('display-manager').textContent = contract.contract_manager || 'N/A';
+                    document.getElementById('display-status').textContent = contract.status;
+                    detailsSection.classList.remove('hidden');
+
+                    // Load and display activities
+                    await loadActivities(currentContractId);
+                    activitiesSection.classList.remove('hidden');
+                    
+                    msg.textContent = `Contract "${contract.contract_name}" found.`;
+                    msg.classList.remove('text-blue-500');
+                    msg.classList.add('text-green-500');
+                } else {
+                    msg.textContent = `No contract found matching "${query}".`;
+                    msg.classList.remove('text-blue-500');
+                    msg.classList.add('text-red-500');
+                }
+            } catch (err) {
+                console.error(err);
+                msg.textContent = "Error connecting to server. Check API status.";
+                msg.classList.remove('text-blue-500');
+                msg.classList.add('text-red-500');
+            }
+        }
+        // 1. Search Function For Payments
+        async function searchContractP() {
+            const id = document.getElementById('searchId').value;
+            const res = await fetch(`${API_URL}/search/${id}`);
+            const data = await res.json();
+
+            if (data.length > 0) {
+                document.getElementById('contractResult').classList.remove('d-none');
+                document.getElementById('displayClient').innerText = data[0].contract_number;
+                document.getElementById('form_contract_id').value = data[0].id;
+                loadPayments(data[0].id);
+            } else {
+                alert('Contract not found');
+            }
+        }
+        //  Other Code snipper for Payment
+        function togglePaymentForm() {
+            document.getElementById('paymentFormSection').classList.toggle('d-none');
+        }
+
+        document.getElementById('paymentForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData();
+            formData.append('contract_id', document.getElementById('form_contract_id').value);
+            formData.append('payment_method', document.getElementById('method').value);
+            formData.append('amount', document.getElementById('amount').value);
+            formData.append('due_date', document.getElementById('dueDate').value);
+            formData.append('attachment', document.getElementById('attachment').files[0]);
+
+            const res = await fetch(`${API_URL}/payments`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (res.ok) {
+                alert("Payment Added!");
+                loadPayments(document.getElementById('form_contract_id').value);
+                document.getElementById('paymentFormSection').classList.add('d-none');
+            }
+        };
+
+        async function loadPayments(contractId) {
+            const res = await fetch(`${API_URL}/payments/${contractId}`);
+            const payments = await res.json();
+            const tbody = document.getElementById('paymentTableBody');
+            tbody.innerHTML = '';
+            
+            let totalCollected = 0;
+            document.getElementById('paymentListSection').classList.remove('d-none');
+
+            payments.forEach(p => {
+                totalCollected += parseFloat(p.amount);
+                const fileLink = p.attachment_path ? 
+                    `<a href="http://localhost:3000/uploads/${p.attachment_path}" target="_blank" class="btn btn-sm btn-link">View File</a>` : 'No file';
+                
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${p.payment_method}</td>
+                        <td>Frw ${parseFloat(p.amount).toLocaleString()}</td>
+                        <td>${p.due_date.split('T')[0]}</td>
+                        <td><span class="badge bg-success">${p.status}</span></td>
+                        <td>${fileLink}</td>
+                    </tr>`;
+            });
+
+            // Add a summary row at the bottom
+            tbody.innerHTML += `
+                <tr class="table-secondary">
+                    <td><strong>TOTAL PAID</strong></td>
+                    <td colspan="4"><strong>Frw ${totalCollected.toLocaleString()}</strong></td>
+                </tr>`;
+        }
+        //End of Payment Code snipper 
+
+        // 2. Load Activities
+        async function loadActivities(contractId) {
+            const tbody = document.getElementById('activity-table-body');
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">Loading activities...</td></tr>';
+            
+            try {
+                const res = await fetch(`${API_URL}/activities/${contractId}`);
+                const activities = await res.json();
+                
+                tbody.innerHTML = ''; // Clear loading message
+
+                if(activities.length > 0) {
+                    activities.forEach(act => {
+                        const tr = document.createElement('tr');
+                        tr.className = 'hover:bg-gray-50';
+                        const currentStatus = act.status || 'Pending';
+                        tr.innerHTML = `
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${act.activity_name}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${act.timeline || '-'}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${act.cost ? act.cost.toLocaleString('en-RW') : 0} Frw </td>
+                            <td class="px-6 py-4 text-wrap text-sm text-gray-500 max-w-xs">${act.deliverable || '-'}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <select id="status-select-${act.id}" class="status-select ${currentStatus}" onchange="updateStatusColor(this)">
+                                    <option value="Pending" ${currentStatus === 'Pending' ? 'selected' : ''}>Pending</option>
+                                    <option value="Failed" ${currentStatus === 'Failed' ? 'selected' : ''}>Failed</option>
+                                    <option value="Completed" ${currentStatus === 'Completed' ? 'selected' : ''}>Completed</option>
+                                </select>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <button class="btn-save-status" title="Save Status" onclick="saveActivityStatus(${act.id})">
+                                    <i class="fa-solid fa-square-check"></i>
+                                </button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">No activities recorded for this contract.</td></tr>';
+                }
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-red-500">Error loading activities.</td></tr>';
+            }
+        }
+
+        // 3. Visual Helper for Dropdown Color
+        function updateStatusColor(select) {
+            // This function dynamically updates the class based on the selected value
+            // It first removes any existing status classes and then adds the new one.
+            select.className = select.className.split(' ').filter(c => !['Pending', 'Failed', 'Completed'].includes(c)).join(' ') + ' ' + select.value;
+        }
+
+        // 4. Save Status to Database
+        async function saveActivityStatus(activityId) {
+            const selectElement = document.getElementById(`status-select-${activityId}`);
+            const newStatus = selectElement.value;
+            // Use the Font Awesome icon class reference
+            const saveButtonIcon = selectElement.closest('tr').querySelector('.btn-save-status i');
+            const originalIconClass = 'fa-solid fa-square-check'; // The default Font Awesome save icon
+
+            saveButtonIcon.className = 'fa-solid fa-spinner animate-spin text-blue-500'; // Show loading spinner
+
+            try {
+                const res = await fetch(`${API_URL}/activities/${activityId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+
+                if(res.ok) {
+                    // Flash successful save animation
+                    saveButtonIcon.className = 'fa-solid fa-check text-green-500'; 
+                } else {
+                    saveButtonIcon.className = 'fa-solid fa-circle-xmark text-red-500'; 
+                    console.error("Failed to update status on server.");
+                }
+            } catch (err) {
+                console.error('Network Error while saving status:', err);
+                saveButtonIcon.className = 'fa-solid fa-triangle-exclamation text-red-500';
+            }
+
+            // Restore original icon after a short delay
+            setTimeout(() => {
+                saveButtonIcon.className = originalIconClass;
+                selectElement.classList.add(newStatus); // Ensure the color is correct after restore
+            }, 1500);
+        }
+
+
+
+
+
+// Beginning of the Evaluation
+
+async function evaluateContract() {
+    // 1. Get the value from the Name input
+    const name = document.getElementById('contractNum').value;
+    if(!name) return alert("Please enter a contract name");
+
+    try {
+        // 2. Fetch using the Name instead of Number
+        const res = await fetch(`/api/evaluate/${encodeURIComponent(name)}`);
+        const data = await res.json();
+
+        // 3. Handle "Not Found" case
+        if (!data.success || data.activities.length === 0) {
+            alert("No active contract found with that name, or it has no activities.");
+            document.getElementById('evaluationContent').classList.add('hidden');
+            return;
+        }
+
+        // Show the content
+        document.getElementById('evaluationContent').classList.remove('hidden');
+        
+        const activities = data.activities;
+        const total = activities.length;
+        const completed = activities.filter(a => a.status === 'Completed').length;
+        const percent = Math.round((completed / total) * 100);
+
+        // Financial Calculations
+        const totalBudget = activities.reduce((sum, a) => sum + parseFloat(a.cost || 0), 0);
+        const spentAmount = activities
+            .filter(a => a.status === 'Completed')
+            .reduce((sum, a) => sum + parseFloat(a.cost || 0), 0);
+
+        // Update UI Header
+        document.getElementById('completionRatio').innerText = `${completed} of ${total} Activities Completed`;
+        document.getElementById('percentageText').innerText = `${percent}%`;
+        document.getElementById('spentAmount').innerText = `Frw ${spentAmount.toLocaleString()}`;
+        document.getElementById('totalBudget').innerText = `Frw ${totalBudget.toLocaleString()}`;
+        
+        // Update Progress Bar
+        document.getElementById('progressBar').style.width = `${percent}%`;
+        document.getElementById('barText').innerText = `${percent}%`;
+
+        // Update Table
+        const tbody = document.getElementById('activityTableBody');
+        tbody.innerHTML = ""; 
+
+        activities.forEach(activity => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><strong>${activity.activity_name}</strong></td>
+                <td>${activity.timeline}</td>
+                <td>Frw ${parseFloat(activity.cost).toLocaleString()}</td>
+                <td>${activity.deliverable}</td>
+                <td><span class="status-${activity.status.replace(/\s+/g, '-')}">${activity.status}</span></td>
+            `;
+            tbody.appendChild(row);
+        });
+
+    } catch (error) {
+        console.error("Error fetching data:", error);
+        alert("An error occurred while fetching contract data.");
+    }
+}
+
+    // Beginning of the code for issues 
+    
+    async function searchContractissue() {
+        const query = document.getElementById('contractSearch').value;
+        const res = await fetch(`/api/contracts/${query}`);
+        const data = await res.json();
+
+        if (data.success) {
+            currentContractId = data.contract.id;
+            document.getElementById('displayContractNum').innerText = data.contract.contract_number;
+            document.getElementById('contractResultissue').classList.remove('hidden');
+            loadIssues();
+        } else {
+            alert('Contract not found');
+        }
+    }
+
+    function toggleForm() {
+        document.getElementById('issueForm').classList.toggle('hidden');
+    }
+
+    async function submitIssue() {
+        const payload = {
+            contract_id: currentContractId,
+            title: document.getElementById('issueTitle').value,
+            description: document.getElementById('issueDesc').value,
+            priority: document.getElementById('issuePriority').value,
+            reported_date: document.getElementById('issueDate').value
+        };
+
+        const res = await fetch('/api/issues', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+            alert('Issue Reported!');
+            loadIssues();
+            toggleForm();
+        }
+    }
+    
+    async function loadIssues() {
+        const res = await fetch(`/api/issues/${currentContractId}`);
+        const issues = await res.json();
+        
+        const table = document.getElementById('issueTable');
+        const tbody = document.getElementById('issueTableBody');
+        const noIssuesMsg = document.getElementById('noIssuesMessage');
+
+        if (issues.length > 0) {
+            table.classList.remove('hidden');
+            noIssuesMsg.classList.add('hidden');
+            
+            tbody.innerHTML = issues.map(i => `
+                <tr>
+                    <td><strong>${i.title}</strong></td>
+                    <td>${i.description}</td>
+                    <td>
+                        <span class="priority-badge bg-${i.priority}">
+                            ${i.priority}
+                        </span>
+                    </td>
+                    <td>${new Date(i.reported_date).toLocaleDateString()}</td>
+                </tr>
+            `).join('');
+        } else {
+            table.classList.add('hidden');
+            noIssuesMsg.classList.remove('hidden');
+        }
+    }
+
+    async function fetchStats() {
+        try {
+            const response = await fetch('http://localhost:3000/api/contract-stats');
+            const data = await response.json();
+            
+            document.getElementById('total-contracts').innerText = data.total || 0;
+            document.getElementById('pending-contracts').innerText = data.pending || 0;
+            document.getElementById('completed-contracts').innerText = data.completed || 0;
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        }
+    }
+
+    // Run on load
+    fetchStats();
+
+    // Beginning of the user management
+        const API_UR = 'http://localhost:3000/api/users';
+
+    // --- Initialization ---
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchUsers();
+        
+        document.getElementById('addUserForm').addEventListener('submit', handleAddUser);
+        document.getElementById('editUserForm').addEventListener('submit', handleEditUserSubmit);
+        
+        // Close modals if clicking outside the modal content box
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = "none";
+            }
+        }
+    });
+
+    // --- CRUD Functions ---
+
+    // Read (Fetch all users)
+    async function fetchUsers() {
+        try {
+            const response = await fetch(API_UR);
+            const users = await response.json();
+            populateTable(users);
+        } catch (error) {
+            console.error('Error fetching users:', error);
+            alert('Failed to load users.');
+        }
+    }
+
+    // Create (Add new user)
+    async function handleAddUser(e) {
+        e.preventDefault();
+        
+        const userData = {
+            username: document.getElementById('addUsername').value,
+            password: document.getElementById('addPassword').value,
+            name: document.getElementById('addName').value,
+            email: document.getElementById('addEmail').value,
+            role: document.getElementById('addRole').value,
+        };
+
+        try {
+            const response = await fetch(API_UR, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(userData)
+            });
+
+            if (response.ok) {
+                document.getElementById('addUserForm').reset();
+                fetchUsers(); // Refresh table
+                alert('User added successfully!');
+            } else {
+                alert('Failed to add user.');
+            }
+        } catch (error) {
+            console.error('Error adding user:', error);
+        }
+    }
+
+    // Read Single (View User Details before action)
+    async function viewUser(id) {
+        try {
+            const response = await fetch(`${API_UR}/${id}`);
+            const user = await response.json();
+
+            const modalBody = document.getElementById('viewModalBody');
+            modalBody.innerHTML = `
+                <p><strong>ID:</strong> ${user.id}</p>
+                <p><strong>Username:</strong> ${user.username}</p>
+                <p><strong>Name:</strong> ${user.name}</p>
+                <p><strong>Email:</strong> ${user.email}</p>
+                <p><strong>Role:</strong> ${user.role}</p>
+                <p><strong>Password:</strong> ${user.password} (Plain Text shown for demo)</p>
+                <p><strong>Created At:</strong> ${new Date(user.created_at).toLocaleString()}</p>
+            `;
+            openModal('viewModal');
+        } catch (error) {
+            console.error('Error fetching user details:', error);
+            alert('Failed to fetch details.');
+        }
+    }
+
+    // Update Prep (Open Edit Modal with data)
+    async function openEditModal(id) {
+        try {
+            // Fetch current data to populate form
+            const response = await fetch(`${API_UR}/${id}`);
+            const user = await response.json();
+
+            document.getElementById('editUserId').value = user.id;
+            document.getElementById('editUsername').value = user.username;
+            document.getElementById('editPassword').value = user.password;
+            document.getElementById('editName').value = user.name;
+            document.getElementById('editEmail').value = user.email;
+            document.getElementById('editRole').value = user.role;
+
+            openModal('editModal');
+        } catch (error) {
+            console.error('Error fetching user for edit:', error);
+        }
+    }
+
+    // Update (Submit Edit Form)
+    async function handleEditUserSubmit(e) {
+        e.preventDefault();
+        const userId = document.getElementById('editUserId').value;
+        const userData = {
+            username: document.getElementById('editUsername').value,
+            password: document.getElementById('editPassword').value,
+            name: document.getElementById('editName').value,
+            email: document.getElementById('editEmail').value,
+            role: document.getElementById('editRole').value,
+        };
+
+        try {
+            const response = await fetch(`${API_UR}/${userId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(userData)
+            });
+
+            if (response.ok) {
+                closeModal('editModal');
+                fetchUsers(); // Refresh table
+                alert('User updated successfully!');
+            } else {
+                alert('Failed to update user.');
+            }
+        } catch (error) {
+            console.error('Error updating user:', error);
+        }
+    }
+
+    // Delete (Remove user)
+    async function deleteUser(id) {
+        // First, fetch basic info for the confirmation prompt
+        try {
+             const userResponse = await fetch(`${API_UR}/${id}`);
+             const user = await userResponse.json();
+
+             const confirmMessage = `Are you sure you want to DELETE user: "${user.name}" (ID: ${user.id})?\n\nThis action cannot be undone.`;
+             
+             if (confirm(confirmMessage)) {
+                const response = await fetch(`${API_UR}/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    fetchUsers(); // Refresh table
+                    alert('User deleted successfully.');
+                } else {
+                    alert('Failed to delete user.');
+                }
+            }
+
+        } catch(error) {
+             console.error("Error during delete process", error);
+             alert("Could not verify user before deletion.");
+        }
+    }
+
+
+    // --- Helper Functions ---
+
+    function populateTable(users) {
+        const tbody = document.querySelector('#usersTable tbody');
+        tbody.innerHTML = ''; // Clear existing rows
+
+        if (users.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No users found.</td></tr>';
+            return;
+        }
+
+        users.forEach(user => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${user.id}</td>
+                <td><strong>${user.name}</strong><br><small>${user.username}</small></td>
+                <td>${user.email}</td>
+                <td><span style="background:#eee; padding: 2px 6px; border-radius:4px; font-size:0.9em">${user.role}</span></td>
+                <td>
+                    <button class="action-btn btn-view" onclick="viewUser(${user.id})">👁️ View</button>
+                    <button class="action-btn btn-edit" onclick="openEditModal(${user.id})">✏️ Edit</button>
+                    <button class="action-btn btn-delete" onclick="deleteUser(${user.id})">🗑️ Delete</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    function openModal(modalId) {
+        document.getElementById(modalId).style.display = 'block';
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // Beginning of the Setting for User
+    // For this example, we assume user ID is 2 (MUNYAKAZI Gad) as seen in your image.
+    // In a real app, this ID would come from your login session/token.
+    const LOGGED_IN_USER_ID = 2; 
+
+    const form = document.getElementById('changePasswordForm');
+    const statusMsg = document.getElementById('statusMsg');
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const currentPassword = document.getElementById('currentPassword').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+
+        // Reset message
+        statusMsg.className = 'message';
+        statusMsg.style.display = 'none';
+
+        // Validation: Check if passwords match
+        if (newPassword !== confirmPassword) {
+            showStatus('New passwords do not match!', 'error');
+            return;
+        }
+
+        // Validation: Length check
+        if (newPassword.length < 4) {
+            showStatus('New password is too short!', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch(`http://localhost:3000/api/users/change-password/${LOGGED_IN_USER_ID}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ currentPassword, newPassword })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showStatus(data.message, 'success');
+                form.reset();
+            } else {
+                showStatus(data.error || 'Something went wrong', 'error');
+            }
+        } catch (error) {
+            showStatus('Server connection failed', 'error');
+        }
+    });
+
+    function showStatus(text, type) {
+        statusMsg.innerText = text;
+        statusMsg.className = `message ${type}`;
+        statusMsg.style.display = 'block';
+    }
+    </script>
+</body>
+</html>

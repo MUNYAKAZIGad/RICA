@@ -1,0 +1,204 @@
+/* --- PROFESSIONAL THEME VARIABLES --- */
+    :root {
+        --primary: #4F46E5; /* Indigo */
+        --primary-hover: #4338ca;
+        --secondary: #6B7280; /* Gray */
+        --bg-body: #F3F4F6;
+        --bg-card: #ffffff;
+        --border: #E5E7EB;
+        --text-main: #1F2937;
+        --text-muted: #6B7280;
+        --success: #10B981;
+        --warning: #F59E0B;
+        --danger: #EF4444;
+        --radius: 12px;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    /* --- LAYOUT RESET --- */
+    body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background-color: var(--bg-body);
+        color: var(--text-main);
+        margin: 0;
+        padding: 40px 20px;
+        line-height: 1.5;
+    }
+
+    .dashboard-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        background: var(--bg-card);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        overflow: hidden; /* Contains child floats/margins */
+        min-height: 600px;
+    }
+
+    /* --- NAVIGATION TABS --- */
+    .tabs-nav {
+        display: flex;
+        background: #f9fafb;
+        border-bottom: 1px solid var(--border);
+        padding: 0 20px;
+    }
+
+    .nav-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 16px 20px;
+        text-decoration: none;
+        color: var(--text-muted);
+        font-weight: 500;
+        font-size: 14px;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+    }
+
+    .nav-link:hover {
+        color: var(--primary);
+        background-color: #f3f4f6;
+    }
+
+    .nav-link.active {
+        color: var(--primary);
+        border-bottom-color: var(--primary);
+        background-color: #fff;
+    }
+
+    /* --- CONTENT AREA --- */
+    .page-content {
+        padding: 30px;
+        animation: fadeIn 0.3s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    h2 { margin-top: 0; font-size: 24px; color: var(--text-main); }
+    h3 { font-size: 18px; margin-bottom: 10px; }
+
+    /* --- WIDGETS & CARDS --- */
+    .progress-widget, .financial-summary-card {
+        background: #F9FAFB;
+        border: 1px solid var(--border);
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+    }
+
+    .financial-summary-card {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+    }
+
+    .financial-summary-card div { flex: 1; text-align: center; }
+    .financial-summary-card p { font-size: 24px; font-weight: 700; margin: 5px 0 0 0; }
+    .paid-amount { color: var(--success); }
+    .due-amount { color: var(--danger); }
+
+    /* --- PROGRESS BAR --- */
+    .progress-bar-container {
+        width: 100%;
+        height: 10px;
+        background-color: #e5e7eb;
+        border-radius: 5px;
+        margin: 10px 0;
+        overflow: hidden;
+    }
+    .progress-bar {
+        height: 100%;
+        background-color: var(--primary);
+        transition: width 0.5s ease;
+    }
+
+    /* --- TABLES --- */
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        font-size: 14px;
+    }
+    
+    .data-table th {
+        text-align: left;
+        padding: 12px 16px;
+        background-color: #F9FAFB;
+        color: var(--text-muted);
+        font-weight: 600;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .data-table td {
+        padding: 16px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .data-table tr:hover { background-color: #f9fafb; }
+
+    /* --- STATUS PILLS --- */
+    .status-pill {
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .status-accepted { background: #D1FAE5; color: #065F46; } /* Green */
+    .status-inprogress { background: #DBEAFE; color: #1E40AF; } /* Blue */
+    .status-due { background: #FEE2E2; color: #991B1B; } /* Red */
+    .status-unpaid { background: #FEF3C7; color: #92400E; } /* Yellow */
+
+    /* --- BUTTONS --- */
+    button { cursor: pointer; border: none; font-family: inherit; }
+    
+    .btn-primary {
+        background: var(--primary);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: background 0.2s;
+    }
+    .btn-primary:hover { background: var(--primary-hover); }
+
+    .btn-secondary {
+        background: white;
+        border: 1px solid var(--border);
+        color: var(--text-main);
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-weight: 500;
+    }
+    .btn-secondary:hover { background: #F3F4F6; }
+
+    .header-with-button {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    /* --- FORMS --- */
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 14px; }
+    .form-group input, .form-group textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        box-sizing: border-box;
+        font-family: inherit;
+    }
+    .form-group textarea { resize: vertical; }
+
+    .alert-box {
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 14px;
+    }
+    .alert-warning { background: #FFFBEB; color: #92400E; border: 1px solid #FCD34D; }
