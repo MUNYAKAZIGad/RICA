@@ -5,9 +5,7 @@ const path = require('path');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const ExcelJS = require('exceljs');
-// DYNAMIC PORT CONFIGURATION
-// Heroku will "inject" a port number into process.env.PORT
-const PORT = process.env.PORT;
+
 
 const app = express();
 app.use(cors());
@@ -16,24 +14,13 @@ app.use(express.json());
 app.use('/uploads', express.static('uploads')); // Serve uploaded files
 app.use(express.static('public')); // This line make image used inside the html file to be loaded correctly and inside html we use <img src="/IMG-20251028-WA0008.jpg" alt="RICA lOGO"> instead of src="./img(Folder which holder image)/your-image.jpg"
 
-// DATABASE CONNECTION CONFIGURATION
-// We use 'process.env' so your password isn't visible on GitHub
+// DATABASE CONNECTION
 const db = mysql.createConnection({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
-    port: 3306,
-    // Tip: Add this to handle connection drops
-    connectTimeout: 10000 
-});
-
-db.connect((err) => {
-    if (err) {
-        console.error('Error connecting to Alwaysdata MySQL:', err.message);
-        return;
-    }
-    console.log('Connected to Alwaysdata MySQL database.');
+    port: 3306
 });
 
 // Setup File Upload Storage
@@ -1000,6 +987,10 @@ app.put('/api/contracts/:id/complete', (req, res) => {
 
 
 // START SERVER
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+const PORT = process.env.PORT || 3000;
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => console.log(`Server on port ${PORT}`));
+}
+
+// THE MOST IMPORTANT LINE FOR VERCEL:
+module.exports = app;
