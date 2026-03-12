@@ -1,6 +1,7 @@
 -- 1. Use the correct database
 USE rica_cms;
 -- ALTER TABLE table_name AUTO_INCREMENT = 1; //This SQL command Reset IDs to Start Counting from One
+
 -- 2. Update 'contracts' table with new fields from the Wizard
 -- We use ALTER TABLE to add columns if they are missing.
 -- If you are starting fresh, you can just add these to the CREATE TABLE statement.

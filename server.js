@@ -4,22 +4,36 @@ const multer = require('multer');
 const path = require('path');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-
-// const bcrypt = require('bcryptjs'); // REMOVED: No longer using bcrypt
+const ExcelJS = require('exceljs');
+// DYNAMIC PORT CONFIGURATION
+// Heroku will "inject" a port number into process.env.PORT
+const PORT = process.env.PORT;
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.json());
 app.use('/uploads', express.static('uploads')); // Serve uploaded files
+app.use(express.static('public')); // This line make image used inside the html file to be loaded correctly and inside html we use <img src="/IMG-20251028-WA0008.jpg" alt="RICA lOGO"> instead of src="./img(Folder which holder image)/your-image.jpg"
 
-// 1. DATABASE CONNECTION
-// Update these with your MySQL credentials
+// DATABASE CONNECTION CONFIGURATION
+// We use 'process.env' so your password isn't visible on GitHub
 const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: '', // <--- CHANGE THIS to your actual MySQL password
-    database: 'rica_cms'
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: 3306,
+    // Tip: Add this to handle connection drops
+    connectTimeout: 10000 
+});
+
+db.connect((err) => {
+    if (err) {
+        console.error('Error connecting to Alwaysdata MySQL:', err.message);
+        return;
+    }
+    console.log('Connected to Alwaysdata MySQL database.');
 });
 
 // Setup File Upload Storage
@@ -31,7 +45,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-// 1. Search Contract
+// Search Contract
 app.get('/api/search/:number', (req, res) => {
     const sql = "SELECT * FROM contracts WHERE contract_name = ?";
     db.query(sql, [req.params.number], (err, result) => {
@@ -40,7 +54,7 @@ app.get('/api/search/:number', (req, res) => {
     });
 });
 
-// 2. Add Payment
+// Add Payment
 app.post('/api/payments', upload.single('attachment'), (req, res) => {
     const { contract_id, payment_method, amount, due_date } = req.body;
     const attachment_path = req.file ? req.file.filename : null;
@@ -52,7 +66,7 @@ app.post('/api/payments', upload.single('attachment'), (req, res) => {
     });
 });
 
-// 3. Get All Payments for a Contract
+// Get All Payments for a Contract
 app.get('/api/payments/:contract_id', (req, res) => {
     const sql = "SELECT * FROM payments WHERE contract_id = ?";
     db.query(sql, [req.params.contract_id], (err, result) => {
@@ -61,36 +75,10 @@ app.get('/api/payments/:contract_id', (req, res) => {
     });
 });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 db.connect(err => {
     if (err) console.log('DB Connection Failed: ' + err.message);
     else console.log('MySQL Connected...');
 });
-
-// 2. AUTHENTICATION ROUTES
 
 // Login (Plain Text Password Check)
 app.post('/api/login', (req, res) => {
@@ -118,49 +106,65 @@ app.post('/api/login', (req, res) => {
     });
 });
 
-/**
- * Endpoint to create a new contract and its associated activities.
- * * It performs a two-step insertion:
- * 1. Inserts the main contract into the 'contracts' table.
- * 2. Uses the auto-generated contract ID (insertId) to link and insert
- * all activities into the 'activities' table.
- */
+
+
+// GET ALL CONTRACTS
+app.get('/api/contracts', (req, res) => {
+    db.query('SELECT * FROM contracts ORDER BY id ASC', (err, results) => {
+        if (err) return res.status(500).send(err);
+        res.json(results);
+    });
+});
+
+// GET SINGLE CONTRACT BY ID (INTEGRATED FOR RENEWAL CLONING)
+app.get('/api/contracts/id/:id', (req, res) => {
+    db.query("SELECT * FROM contracts WHERE id = ?", [req.params.id], (err, results) => {
+        if (err) return res.status(500).json({success: false, err});
+        if (results.length > 0) res.json({ success: true, contract: results[0] });
+        else res.json({ success: false, message: 'Not found' });
+    });
+});
+
+
 app.post('/api/contracts', (req, res) => {
     const data = req.body;
     
-    // 1. Prepare Contract Data (Step 1 Fields)
+    // Prepare Contract Data (Step 1 Fields)
     const contractData = {
         contract_name: data.contract_name,
-        contract_number: data.contract_nber, // <-- The field in question
+        contract_number: data.contract_nber,
         contract_type: data.contract_type,
         service_provider: data.service_provider,
-        service_provider_phone: data.service_provider_phone, // New field
-        service_provider_email: data.service_provider_email, // New field
-        public_institution: data.public_institution, // Default value
-        institution_tin: data.tin_number,
+        service_provider_phone: data.service_provider_phone,
+        service_provider_email: data.service_provider_email,
+        tender_type: data.tender_type,
         contract_manager: data.manager_name,
         manager_phone: data.manager_phone,
         manager_email: data.manager_email,
         start_date: data.start_date,
         end_date: data.end_date,
         budget_source: data.budget_source,
-        partner_name: data.partner_name,
-        project_name: data.project_name,
+
+        // Otherwise, they are saved as null to keep the database clean.
+        partner_name: data.budget_source === 'Development Partner' ? data.partner_name : null,
+        project_name: data.budget_source === 'Development Partner' ? data.project_name : null,
+
         budget_allocated: data.budget_allocated,
         contract_value: data.contract_value,
-        status: 'Pending'
+        status: data.renewed_from_id ? 'Active' : 'Pending',
+        renewed_from_id: data.renewed_from_id || null
     };
 
     const sqlContract = 'INSERT INTO contracts SET ?';
-    
-    // 2. Insert the Contract first
+
+    // Insert the Contract first
     db.query(sqlContract, contractData, (err, result) => {
         if (err) {
             //CRITICAL DEBUGGING LOGS
             console.error("--- SQL CONTRACT INSERTION FAILED ---");
-            console.error("SQL Error Code:", err.code); // e.g., 'ER_DUP_ENTRY'
-            console.error("SQL Error Message:", err.message); // The full DB error text
-            console.log("Data Payload Sent to DB:", contractData); // What Express tried to insert
+            console.error("SQL Error Code:", err.code);
+            console.error("SQL Error Message:", err.message); 
+            console.log("Data Payload Sent to DB:", contractData);
             console.error("--------------------------------------");
             
             return res.status(500).json({ 
@@ -169,25 +173,23 @@ app.post('/api/contracts', (req, res) => {
             });
         }
 
-        // 3. Capture the new Contract ID
+        // Capture the new Contract ID
         const newContractId = result.insertId;
         
-        // ... (Activities parsing and insertion code remains the same)
-        
-        // 4. Parse Activities Data (Sent as a JSON string from the frontend)
+        // Parse Activities Data
         let activities = [];
         try {
             if (data.activities) {
-                activities = JSON.parse(data.activities);
+                activities = typeof data.activities === 'string' ? JSON.parse(data.activities) : data.activities;
             }
         } catch (e) {
             console.error("Error parsing activities JSON", e);
         }
 
         if (activities.length > 0) {
-            // 5. Prepare Activities for Bulk Insert
+            // Prepare Activities for Bulk Insert
             const activityValues = activities.map(act => [
-                newContractId, // Link: FOREIGN KEY to the contracts table
+                newContractId, 
                 act.name,
                 act.timeline,
                 act.cost,
@@ -196,7 +198,7 @@ app.post('/api/contracts', (req, res) => {
 
             const sqlActivities = 'INSERT INTO activities (contract_id, activity_name, timeline, cost, deliverable) VALUES ?';
             
-            // 6. Insert Activities
+            // Insert Activities
             db.query(sqlActivities, [activityValues], (err, result) => {
                 if (err) {
                     console.error("Error inserting activities:", err);
@@ -205,19 +207,20 @@ app.post('/api/contracts', (req, res) => {
                 res.json({ message: 'Contract and Activities Saved Successfully', contractId: newContractId });
             });
         } else {
-            // Contract was saved, but no activities were provided
             res.json({ message: 'Contract Saved Successfully (No activities)', contractId: newContractId });
         }
     });
 });
 
 // Get Contracts (for Dashboard view)
-app.get('/api/contracts', (req, res) => {
-    db.query('SELECT * FROM contracts ORDER BY id DESC', (err, results) => {
-        if (err) return res.status(500).send(err);
-        res.json(results);
-    });
-});
+// DESC "To arrange by Descending Order (Newest First)"
+// ASC "To arrange by Ascending Order (Oldest First)"
+// app.get('/api/contracts', (req, res) => {
+//     db.query('SELECT * FROM contracts ORDER BY id ASC', (err, results) => {
+//         if (err) return res.status(500).send(err);
+//         res.json(results);
+//     });
+// });
 
 // Register User (Plain Text Password Storage)
 app.post('/api/users/create', (req, res) => {
@@ -248,7 +251,7 @@ app.delete('/api/users/:id', (req, res) => {
     });
 });
 
-// 3. CONTRACT ROUTES
+// CONTRACT ROUTES
 app.get('/api/contracts', (req, res) => {
     db.query('SELECT * FROM contracts', (err, results) => {
         if (err) return res.status(500).send(err);
@@ -265,13 +268,9 @@ app.post('/api/contracts', (req, res) => {
     });
 });
 
-// --- NEW ROUTES FOR ACTIVITY TRACKING Deliverable ---
-
-// 1. Search Contract by Name
-// Handles GET /api/contracts/search?name=ContractName
+// Search Contract by Name
 app.get('/api/contracts/search', (req, res) => {
     const name = req.query.name;
-    // Use LIKE for partial matches (searches for any contract name containing the query string)
     const sql = "SELECT * FROM contracts WHERE contract_name LIKE ? LIMIT 1";
     db.query(sql, [`%${name}%`], (err, results) => {
         if (err) return res.status(500).send({ error: 'Search failed' });
@@ -279,8 +278,7 @@ app.get('/api/contracts/search', (req, res) => {
     });
 });
 
-// 2. Get Activities for a specific Contract ID
-// Handles GET /api/activities/:contractId
+// Get Activities for a specific Contract ID
 app.get('/api/activities/:contractId', (req, res) => {
     const contractId = req.params.contractId;
     // Retrieves all associated activities for the given contract ID
@@ -291,8 +289,7 @@ app.get('/api/activities/:contractId', (req, res) => {
     });
 });
 
-// 3. Update Activity Status
-// Handles PUT /api/activities/:id/status
+// Update Activity Status
 app.put('/api/activities/:id/status', (req, res) => {
     const activityId = req.params.id;
     const { status } = req.body; // Expected body: { "status": "Completed" }
@@ -348,11 +345,39 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// 1. Search Contract
+// Beginning of Archive Section Embeded
+// Get Archived Lists
+// ARCHIVED LIST GETTER
+app.get('/api/contracts/archived', (req, res) => {
+    const archivedSql = "SELECT * FROM contracts WHERE is_archived = 1 ORDER BY archive_date DESC";
+    const activeCountSql = "SELECT COUNT(*) as activeCount FROM contracts WHERE is_archived = 0";
+
+    db.query(archivedSql, (err, archived) => {
+        if (err) return res.status(500).json(err);
+        db.query(activeCountSql, (err, countRes) => {
+            res.json({ archived: archived, activeCount: countRes[0].activeCount });
+        });
+    });
+});
+
+// Search for active
+app.get('/api/contracts/search-active', (req, res) => {
+    const num = req.query.num;
+    const sql = `SELECT id, contract_number, contract_name, service_provider 
+                 FROM contracts WHERE contract_name = ? AND is_archived = 0`;
+    db.query(sql, [num], (err, results) => {
+        if (err) return res.status(500).json(err);
+        if (results.length > 0) res.json({ success: true, contract: results[0] });
+        else res.json({ success: false });
+    });
+});
+// End of Archive Section Embeded
+
+// Search Contract
 app.get('/api/contracts/:num', (req, res) => {
     const sql = "SELECT * FROM contracts WHERE contract_name = ?";
     db.query(sql, [req.params.num], (err, results) => {
-        if (results.length > 0) {
+        if (results && results.length > 0) {
             res.json({ success: true, contract: results[0] });
         } else {
             res.json({ success: false });
@@ -360,7 +385,7 @@ app.get('/api/contracts/:num', (req, res) => {
     });
 });
 
-// 2. Post New Issue
+// Post New Issue
 app.post('/api/issues', (req, res) => {
     const { contract_id, title, description, priority, reported_date } = req.body;
     const sql = "INSERT INTO issues (contract_id, title, description, priority, reported_date) VALUES (?, ?, ?, ?, ?)";
@@ -370,7 +395,7 @@ app.post('/api/issues', (req, res) => {
     });
 });
 
-// 3. Get Issues for a Contract
+// Get Issues for a Contract
 app.get('/api/issues/:contractId', (req, res) => {
     const sql = "SELECT * FROM issues WHERE contract_id = ? ORDER BY reported_date DESC";
     db.query(sql, [req.params.contractId], (err, results) => {
@@ -378,7 +403,6 @@ app.get('/api/issues/:contractId', (req, res) => {
         res.json(results);
     });
 });
-
 
 // API Route to get contract stats
 app.get('/api/contract-stats', (req, res) => {
@@ -398,8 +422,6 @@ app.get('/api/contract-stats', (req, res) => {
 });
 
 // Beginning of the user management 
-// --- API Endpoints ---
-
 // Get all users (Read)
 app.get('/api/users', (req, res) => {
     const query = 'SELECT id, username, name, email, role, created_at FROM users ORDER BY id DESC';
@@ -476,14 +498,12 @@ app.delete('/api/users/:id', (req, res) => {
 });
 
 // Beginning of setting code for user
-// --- 2. SELF-SERVICE SETTINGS ENDPOINT (Settings Page) ---
-
 // Change password for logged-in user
 app.put('/api/users/change-password/:id', (req, res) => {
     const userId = req.params.id;
     const { currentPassword, newPassword } = req.body;
 
-    // Step 1: Verify current password
+    //Verify current password
     const checkQuery = 'SELECT password FROM users WHERE id = ?';
     db.query(checkQuery, [userId], (err, results) => {
         if (err) return res.status(500).json({ error: 'Database error' });
@@ -493,7 +513,7 @@ app.put('/api/users/change-password/:id', (req, res) => {
             return res.status(401).json({ error: 'The current password you entered is incorrect.' });
         }
 
-        // Step 2: Update to new password
+        //Update to new password
         const updateQuery = 'UPDATE users SET password = ? WHERE id = ?';
         db.query(updateQuery, [newPassword, userId], (err, result) => {
             if (err) return res.status(500).json({ error: 'Update failed' });
@@ -502,11 +522,484 @@ app.put('/api/users/change-password/:id', (req, res) => {
     });
 });
 
-// START SERVER
-const PORT = 3000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+// Beginning of Amendament
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
-// Duplicate DB initialization and plain-text password update removed.
-// If you need to run a one-time update or seed, run a separate script (e.g. scripts/reset-password.js)
-// using the existing top-level 'db' connection instead of redeclaring it.
+
+// API to get list of contracts for the dropdown
+app.get('/api/contracts', (req, res) => {
+    // We select 'id' and 'contract_name' as seen in your screenshot
+    const query = 'SELECT id, contract_name FROM contracts'; 
+    db.query(query, (err, results) => {
+        if (err) return res.status(500).send(err);
+        res.json(results);
+    });
+});
+
+// API to get amendments (Joining with the contracts table)
+app.get('/api/amendments', (req, res) => {
+    const sql = `
+        SELECT a.*, c.contract_name 
+        FROM amendments a 
+        JOIN contracts c ON a.contract_id = c.id
+        ORDER BY a.created_at DESC`;
+    db.query(sql, (err, results) => {
+        if (err) return res.status(500).send(err);
+        res.json(results);
+    });
+});
+
+//Create new amendment
+app.post('/api/amendments', (req, res) => {
+    const { contract_id, description, impact_cost, impact_days } = req.body;
+    const sql = 'INSERT INTO amendments (contract_id, description, impact_cost, impact_days) VALUES (?, ?, ?, ?)';
+    db.query(sql, [contract_id, description, impact_cost, impact_days], (err, result) => {
+        if (err) return res.status(500).send(err);
+        res.json({ success: true, id: result.insertId });
+    });
+});
+
+//Update amendment status
+app.patch('/api/amendments/:id', (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    const sql = 'UPDATE amendments SET status = ? WHERE id = ?';
+    db.query(sql, [status, id], (err, result) => {
+        if (err) {
+            console.error("Update Error:", err);
+            return res.status(500).send(err);
+        }
+        res.json({ success: true });
+    });
+});
+// End of Amendament
+
+// Beginning of Archive Section
+app.post('/api/contracts/archive', (req, res) => {
+    const { id, reason } = req.body;
+    const sql = `UPDATE contracts SET is_archived = 1, archive_date = NOW(), 
+                 termination_reason = ? WHERE id = ?`;
+    db.query(sql, [reason, id], (err) => {
+        if (err) return res.status(500).send(err);
+        res.sendStatus(200);
+    });
+});
+
+// Restore
+app.post('/api/contracts/restore', (req, res) => {
+    const { id } = req.body;
+    const sql = "UPDATE contracts SET is_archived = 0, archive_date = NULL, termination_reason = NULL WHERE id = ?";
+    db.query(sql, [id], (err) => {
+        if (err) return res.status(500).send(err);
+        res.sendStatus(200);
+    });
+});
+
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+// End of Archive Section
+
+// Click on contract on Dashboard to view details
+app.get('/api/full-contract-details/:id', (req, res) => {
+    const contractId = req.params.id;
+
+    //Get the main contract data
+    const sqlContract = "SELECT * FROM contracts WHERE id = ?";
+    db.query(sqlContract, [contractId], (err, contractResult) => {
+        if (err) return res.status(500).json({ error: "Database error" });
+        if (contractResult.length === 0) return res.status(404).json({ error: "Contract not found" });
+
+        const mainContract = contractResult[0];
+
+        //Get the related rows from the separate 'activities' table
+        const sqlActivities = "SELECT * FROM activities WHERE contract_id = ?";
+        db.query(sqlActivities, [contractId], (err, activityResults) => {
+            if (err) return res.status(500).json({ error: "Database error on activities" });
+
+            //Send back a combined object
+            res.json({
+                contractInfo: mainContract,
+                activitiesList: activityResults
+            });
+        });
+    });
+});
+
+
+
+// Beginning of Reporting Section
+// app.post('/api/reports/export', async (req, res) => {
+//     const { startDate, endDate, status, budget, incActivities } = req.body;
+
+//     // Build the SQL Query based on filters
+//     let sql = "SELECT * FROM contracts WHERE 1=1";
+//     let params = [];
+
+//     if (status !== 'all') { sql += " AND status = ?"; params.push(status); }
+//     if (budget !== 'all') { sql += " AND source_of_budget = ?"; params.push(budget); }
+//     if (startDate) { sql += " AND start_date >= ?"; params.push(startDate); }
+//     if (endDate) { sql += " AND end_date <= ?"; params.push(endDate); }
+
+//     db.query(sql, params, async (err, results) => {
+//         if (err) return res.status(500).send(err);
+
+//         const workbook = new ExcelJS.Workbook();
+//         const worksheet = workbook.addWorksheet('Contracts Report');
+
+//         // Define Professional Columns
+//         worksheet.columns = [
+//             { header: 'Contract Name', key: 'contract_name', width: 35 },
+//             { header: 'Contract Number', key: 'contract_number', width: 20 },
+//             { header: 'Service Provider', key: 'service_provider', width: 25 },
+//             { header: 'Value (RWF)', key: 'contract_value', width: 15 },
+//             { header: 'Budget Source', key: 'source_of_budget', width: 20 },
+//             { header: 'Status', key: 'status', width: 15 },
+//             { header: 'Start Date', key: 'start_date', width: 15 },
+//             { header: 'End Date', key: 'end_date', width: 15 }
+//         ];
+
+//         // Style the Header (RICA Green)
+//         worksheet.getRow(1).eachCell((cell) => {
+//             cell.font = { bold: true, color: { argb: 'FFFFFF' } };
+//             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '4CAF50' } };
+//             cell.alignment = { vertical: 'middle', horizontal: 'center' };
+//         });
+
+//         // Add Data Rows
+//         results.forEach(contract => {
+//             worksheet.addRow(contract);
+//         });
+
+//         // Set response headers
+//         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+//         res.setHeader('Content-Disposition', 'attachment; filename=RICA_Report.xlsx');
+
+//         await workbook.xlsx.write(res);
+//         res.end();
+//     });
+// });
+
+
+
+
+
+
+
+
+
+// ROUTE 1: Search for contracts by name or number
+app.get('/api/reports/search', (req, res) => {
+    const searchTerm = `%${req.query.q}%`;
+    const sql = "SELECT id, contract_name, contract_number FROM contracts WHERE contract_name LIKE ? OR contract_number LIKE ? LIMIT 1";
+    db.query(sql, [searchTerm, searchTerm], (err, results) => {
+        if (err) return res.status(500).json(err);
+        res.json(results);
+    });
+});
+
+// ROUTE 2: Get all activities for a specific ID
+app.get('/api/contract-activities/:id', (req, res) => {
+    const sql = "SELECT * FROM activities WHERE contract_id = ?";
+    db.query(sql, [req.params.id], (err, results) => {
+        if (err) return res.status(500).json(err);
+        res.json(results);
+    });
+});
+
+// Get Payments for Report Preview
+app.get('/api/contract-payments/:id', (req, res) => {
+    db.query("SELECT * FROM payments WHERE contract_id = ?", [req.params.id], (err, results) => {
+        if (err) return res.status(500).json(err);
+        res.json(results);
+    });
+});
+
+// Get Issues for Report Preview
+app.get('/api/contract-issues/:id', (req, res) => {
+    db.query("SELECT * FROM issues WHERE contract_id = ?", [req.params.id], (err, results) => {
+        if (err) return res.status(500).json(err);
+        res.json(results);
+    });
+});
+
+// Get Amendments for Report Preview
+app.get('/api/contract-amendments/:id', (req, res) => {
+    db.query("SELECT * FROM amendments WHERE contract_id = ?", [req.params.id], (err, results) => {
+        if (err) return res.status(500).json(err);
+        res.json(results);
+    });
+});
+// app.post('/api/reports/detailed-export', (req, res) => {
+//     const { contractId, activityIds } = req.body;
+
+//     // 1. Validate Input
+//     if (!contractId || !activityIds || activityIds.length === 0) {
+//         return res.status(400).send("Missing contract ID or selected activities.");
+//     }
+
+//     const sqlContract = "SELECT * FROM contracts WHERE id = ?";
+//     const sqlActivities = "SELECT * FROM activities WHERE id IN (?)";
+
+//     db.query(sqlContract, [contractId], (err, contractResults) => {
+//         if (err || contractResults.length === 0) return res.status(500).send("Database error or contract not found.");
+        
+//         const contract = contractResults[0];
+
+//         db.query(sqlActivities, [activityIds], async (err, activityResults) => {
+//             if (err) return res.status(500).send("Error fetching activities.");
+
+//             try {
+//                 const workbook = new ExcelJS.Workbook();
+//                 const sheet = workbook.addWorksheet('Contract Report');
+
+//                 // STYLE: Professional Header
+//                 sheet.mergeCells('A1:E1');
+//                 sheet.getCell('A1').value = 'RICA CONTRACT EXPENDITURE & ACTIVITY REPORT';
+//                 sheet.getCell('A1').font = { bold: true, size: 14, color: { argb: 'FFFFFF' } };
+//                 sheet.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '4CAF50' } };
+//                 sheet.getCell('A1').alignment = { horizontal: 'center' };
+
+//                 // SECTION: Contract Details
+//                 sheet.addRow([]); // Spacer
+//                 sheet.addRow(['CONTRACT INFORMATION']).font = { bold: true };
+//                 sheet.addRow(['Contract Name', contract.contract_name]);
+//                 sheet.addRow(['Reference No', contract.contract_number]);
+//                 sheet.addRow(['Service Provider', contract.service_provider]);
+//                 sheet.addRow(['Total Contract Value', `${contract.contract_value} RWF`]);
+//                 sheet.addRow(['Budget Source', contract.source_of_budget]);
+//                 sheet.addRow(['Status', contract.status]);
+//                 sheet.addRow([]); // Spacer
+
+//                 // SECTION: Activity Details Table
+//                 sheet.addRow(['DETAILED ACTIVITIES']).font = { bold: true };
+//                 const headerRow = sheet.addRow(['Activity Name', 'Timeline', 'Cost (RWF)', 'Deliverable', 'Status']);
+                
+//                 headerRow.eachCell((cell) => {
+//                     cell.font = { bold: true, color: { argb: 'FFFFFF' } };
+//                     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '388E3C' } };
+//                 });
+
+//                 activityResults.forEach(act => {
+//                     sheet.addRow([
+//                         act.activity_name,
+//                         act.timeline,
+//                         act.cost,
+//                         act.deliverable,
+//                         act.status
+//                     ]);
+//                 });
+
+//                 // Auto-adjust column widths
+//                 sheet.getColumn(1).width = 40;
+//                 sheet.getColumn(2).width = 20;
+//                 sheet.getColumn(3).width = 15;
+//                 sheet.getColumn(4).width = 30;
+//                 sheet.getColumn(5).width = 15;
+
+//                 // Send to browser
+//                 res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+//                 res.setHeader('Content-Disposition', `attachment; filename=Report.xlsx`);
+
+//                 await workbook.xlsx.write(res);
+//                 res.end();
+
+//             } catch (excelErr) {
+//                 console.error(excelErr);
+//                 res.status(500).send("Excel Generation Error");
+//             }
+//         });
+//     });
+// });
+
+
+
+
+
+
+
+
+
+
+// --- REPORTING ROUTES ---
+
+// Helper function to safely fetch data or return empty array
+const fetchTableData = async (query, params) => {
+    try {
+        const [rows] = await db.promise().query(query, params);
+        return rows;
+    } catch (e) {
+        console.error(e);
+        return [];
+    }
+};
+
+// 1. Fetch data for the Preview Area
+app.post('/api/reports/preview-data', async (req, res) => {
+    const { contractId, activityIds, incPayments, incIssues, incAmendments } = req.body;
+
+    try {
+        const [contracts] = await db.promise().query("SELECT * FROM contracts WHERE id = ?", [contractId]);
+        if (contracts.length === 0) return res.status(404).send("Contract not found");
+
+        const activities = activityIds.length > 0 
+            ? await fetchTableData("SELECT * FROM activities WHERE id IN (?)", [activityIds]) 
+            : [];
+            
+        const payments = incPayments ? await fetchTableData("SELECT * FROM payments WHERE contract_id = ?", [contractId]) : [];
+        const issues = incIssues ? await fetchTableData("SELECT * FROM issues WHERE contract_id = ?", [contractId]) : [];
+        const amendments = incAmendments ? await fetchTableData("SELECT * FROM amendments WHERE contract_id = ?", [contractId]) : [];
+
+        res.json({
+            contract: contracts[0],
+            activities,
+            payments,
+            issues,
+            amendments
+        });
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
+});
+
+// 2. Generate the Expanded Excel File
+app.post('/api/reports/detailed-export', async (req, res) => {
+    const { contractId, activityIds, incPayments, incIssues, incAmendments } = req.body;
+
+    try {
+        // Fetch all required data using Promises
+        const [contracts] = await db.promise().query("SELECT * FROM contracts WHERE id = ?", [contractId]);
+        if (contracts.length === 0) return res.status(404).send("Contract not found");
+        const c = contracts[0];
+
+        const activities = activityIds.length > 0 ? await fetchTableData("SELECT * FROM activities WHERE id IN (?)", [activityIds]) : [];
+        const payments = incPayments ? await fetchTableData("SELECT * FROM payments WHERE contract_id = ?", [contractId]) : [];
+        const issues = incIssues ? await fetchTableData("SELECT * FROM issues WHERE contract_id = ?", [contractId]) : [];
+        const amendments = incAmendments ? await fetchTableData("SELECT * FROM amendments WHERE contract_id = ?", [contractId]) : [];
+
+        const workbook = new ExcelJS.Workbook();
+        const sheet = workbook.addWorksheet('Comprehensive Report');
+
+        // --- STYLING HELPERS ---
+        const addSectionHeader = (title) => {
+            sheet.addRow([]);
+            const row = sheet.addRow([title]);
+            row.font = { bold: true, size: 12, color: { argb: 'FFFFFF' } };
+            row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '4CAF50' } };
+            sheet.mergeCells(`A${row.number}:E${row.number}`);
+        };
+
+        const addTableHeader = (headers) => {
+            const row = sheet.addRow(headers);
+            row.eachCell(cell => {
+                cell.font = { bold: true };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'E8F5E9' } };
+            });
+        };
+
+        const formatDate = (dateString) => dateString ? new Date(dateString).toISOString().split('T')[0] : 'N/A';
+
+        // --- 1. MAIN TITLE ---
+        sheet.mergeCells('A1:E1');
+        sheet.getCell('A1').value = 'RICA COMPREHENSIVE CONTRACT REPORT';
+        sheet.getCell('A1').font = { bold: true, size: 16, color: { argb: 'FFFFFF' } };
+        sheet.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '2E7D32' } };
+        sheet.getCell('A1').alignment = { horizontal: 'center' };
+
+        // --- 2. EXTENDED CONTRACT INFO ---
+        addSectionHeader('CONTRACT DETAILS');
+        sheet.addRow(['Contract Name:', c.contract_name, '', 'Contract Manager:', c.contract_manager]);
+        sheet.addRow(['Reference No:', c.contract_number, '', 'Manager Phone:', c.manager_phone || 'N/A']);
+        sheet.addRow(['Service Provider:', c.service_provider, '', 'Manager Email:', c.manager_email || 'N/A']);
+        sheet.addRow(['Tender Type:', c.tender_type || 'N/A', '', 'Contract Type:', c.contract_type || 'N/A']);
+        sheet.addRow(['Budget Source:', c.budget_source || 'N/A', '', 'Allocated Budget:', `${c.budget_allocated || 0} RWF`]);
+        sheet.addRow(['Start Date:', formatDate(c.start_date), '', 'End Date:', formatDate(c.end_date)]);
+        sheet.addRow(['Current Status:', c.status]);
+
+        // --- 3. ACTIVITIES ---
+        if (activities.length > 0) {
+            addSectionHeader('INCLUDED ACTIVITIES');
+            addTableHeader(['Activity Name', 'Timeline', 'Cost (RWF)', 'Deliverable', 'Status']);
+            activities.forEach(a => sheet.addRow([a.activity_name, a.timeline, a.cost, a.deliverable, a.status]));
+        }
+
+        // --- 4. PAYMENTS ---
+        if (incPayments && payments.length > 0) {
+            addSectionHeader('PAYMENT HISTORY');
+            addTableHeader(['Payment Method', 'Amount (RWF)', 'Due Date', 'Status', 'Attachment Ref']);
+            payments.forEach(p => sheet.addRow([p.payment_method, p.amount, formatDate(p.due_date), p.status, p.attachment_path || 'None']));
+        }
+
+        // --- 5. ISSUES ---
+        if (incIssues && issues.length > 0) {
+            addSectionHeader('REPORTED ISSUES');
+            addTableHeader(['Title', 'Description', 'Priority', 'Reported Date', '']);
+            issues.forEach(i => sheet.addRow([i.title, i.description, i.priority, formatDate(i.reported_date)]));
+        }
+
+        // --- 6. AMENDMENTS ---
+        if (incAmendments && amendments.length > 0) {
+            addSectionHeader('CONTRACT AMENDMENTS');
+            addTableHeader(['Description', 'Impact Cost (RWF)', 'Impact Days', 'Status', 'Created At']);
+            amendments.forEach(am => sheet.addRow([am.description, am.impact_cost, am.impact_days, am.status, formatDate(am.created_at)]));
+        }
+
+        // --- COLUMN WIDTHS ---
+        sheet.getColumn(1).width = 25;
+        sheet.getColumn(2).width = 30;
+        sheet.getColumn(3).width = 15;
+        sheet.getColumn(4).width = 25;
+        sheet.getColumn(5).width = 25;
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename=Report_${c.contract_number}.xlsx`);
+        await workbook.xlsx.write(res);
+        res.end();
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Excel Generation Error");
+    }
+});
+// End of the Reporting section
+
+
+
+
+
+
+
+// Beginning of changing contract status
+// Check activities and complete contract
+app.put('/api/contracts/:id/complete', (req, res) => {
+    const contractId = req.params.id;
+
+    // 1. Fetch all activities for this contract
+    db.query("SELECT status FROM activities WHERE contract_id = ?", [contractId], (err, activities) => {
+        if (err) return res.status(500).send(err);
+        
+        if (activities.length === 0) {
+            return res.status(400).json({ error: "No activities found for this contract." });
+        }
+
+        // 2. Check if every single activity is 'Completed'
+        const allCompleted = activities.every(a => a.status === 'Completed');
+
+        if (!allCompleted) {
+            return res.status(400).json({ error: "Cannot complete: Some activities are still Pending or Failed." });
+        }
+
+        // 3. Update contract status to 'Completed'
+        db.query("UPDATE contracts SET status = 'Completed' WHERE id = ?", [contractId], (err) => {
+            if (err) return res.status(500).send(err);
+            res.json({ message: "Contract status updated to Completed!" });
+        });
+    });
+});
+// The End of Changing contract Status
+
+
+// START SERVER
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
