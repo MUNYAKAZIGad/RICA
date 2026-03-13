@@ -24,13 +24,13 @@ const db = mysql.createConnection({
 });
 
 // Setup File Upload Storage
-const storage = multer.diskStorage({
-    destination: './uploads/',
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname));
-    }
-});
-const upload = multer({ storage: storage });
+// const storage = multer.diskStorage({
+//     destination: './uploads/',
+//     filename: (req, file, cb) => {
+//         cb(null, Date.now() + path.extname(file.originalname));
+//     }
+// });
+// const upload = multer({ storage: storage });
 
 // Search Contract
 app.get('/api/search/:number', (req, res) => {
